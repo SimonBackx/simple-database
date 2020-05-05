@@ -2,13 +2,19 @@ import { Database } from "./Database";
 import { Model } from "./Model";
 
 export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model> {
-    modelA: { new(): A } & typeof Model;
-    modelB: { new(): B } & typeof Model;
+    modelA: { new (): A } & typeof Model;
+    modelB: { new (): B } & typeof Model;
 
     /**
      * E.g. parents
      */
     modelKey: Key;
+
+    /**
+     * Sort the loading of this relation
+     */
+    sortKey: string | undefined;
+    sortOrder: "ASC" | "DESC" = "ASC";
 
     /**
      * E.g. _models_parents
@@ -41,6 +47,18 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         );
     }
 
+    constructor(modelA: { new (): A } & typeof Model, modelB: { new (): B } & typeof Model, modelKey: Key) {
+        this.modelA = modelA;
+        this.modelB = modelB;
+        this.modelKey = modelKey;
+    }
+
+    setSort(key: string, order: "ASC" | "DESC" = "ASC"): this {
+        this.sortKey = key;
+        this.sortOrder = order;
+        return this;
+    }
+
     /// Generate a join query
     joinQuery(namespaceA: string, namespaceB: string): string {
         const linkNamespace = namespaceA + "_" + namespaceB;
@@ -49,23 +67,34 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         return str;
     }
 
+    orderByQuery(namespaceA: string, namespaceB: string): string {
+        if (this.sortKey === undefined) {
+            return "";
+        }
+        const linkNamespace = namespaceA + "_" + namespaceB;
+        let str = `\nORDER BY ${linkNamespace}.${this.sortKey}`;
+        if (this.sortOrder == "DESC") {
+            str += " DESC";
+        }
+        return str + "\n";
+    }
+
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A): Promise<B[]> {
+    async load(modelA: A, sorted: boolean = true): Promise<B[]> {
         const namespaceB = "B";
         const linkNamespace = "AB";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.linkTable} as ${linkNamespace}\n`;
         str += `JOIN ${this.modelB.table} as ${namespaceB} on ${linkNamespace}.${this.linkKeyB} = ${namespaceB}.${this.modelB.primary.name}\n`;
         str += `WHERE ${linkNamespace}.${this.linkKeyA} = ?`;
+
+        if (sorted) {
+            str += this.orderByQuery("A", "B");
+        }
+
         const [rows] = await Database.select(str, [modelA.getPrimaryKey()]);
         const modelsB = this.modelB.fromRows(rows, namespaceB) as B[];
         modelA.setManyRelation(this, modelsB);
         return modelsB;
-    }
-
-    constructor(modelA: { new(): A } & typeof Model, modelB: { new(): B } & typeof Model, modelKey: Key) {
-        this.modelA = modelA;
-        this.modelB = modelB;
-        this.modelKey = modelKey;
     }
 
     /// Whether this relation is loaded
@@ -74,7 +103,6 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         return Array.isArray((model as any)[this.modelKey]);
     }
 
-    /// isSet doesn't make sens for many to many. It is always set because it isn't optional
     async link(modelA: A, ...modelsB: B[]): Promise<void> {
         if (!modelA.getPrimaryKey()) {
             throw new Error("Cannot link if model is not saved yet");
@@ -88,9 +116,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         const query = `INSERT INTO ${this.linkTable} (${this.linkKeyA}, ${this.linkKeyB}) VALUES ?`;
 
         // Nested arrays are turned into grouped lists (for bulk inserts), e.g. [['a', 'b'], ['c', 'd']] turns into ('a', 'b'), ('c', 'd')
-        const [result] = await Database.insert(query, [
-            modelsB.map(modelB => [modelA.getPrimaryKey(), modelB.getPrimaryKey()])
-        ]);
+        const [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA.getPrimaryKey(), modelB.getPrimaryKey()])]);
 
         // If the relation is loaded, also modify the value of the relation
         if (this.isLoaded(modelA)) {
@@ -100,13 +126,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             } else {
                 // This could happen in race conditions and simultanious requests
 
-                console.warn(
-                    "Warning: linking expected to affect " +
-                    modelsB.length +
-                    " rows, but only affected " +
-                    result.affectedRows +
-                    " rows"
-                );
+                console.warn("Warning: linking expected to affect " + modelsB.length + " rows, but only affected " + result.affectedRows + " rows");
 
                 // TODO: Manually correct by doing a query (safest)
                 throw new Error("Fallback behaviour net yet implemented");
@@ -135,30 +155,21 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         const query = `DELETE FROM ${this.linkTable} WHERE ${this.linkKeyA} = ? AND ${this.linkKeyB} IN (?)`;
 
         // Arrays are turned into list, e.g. ['a', 'b'] turns into 'a', 'b'
-        const [result] = await Database.delete(query, [
-            modelA.getPrimaryKey(),
-            modelsB.map(modelB => modelB.getPrimaryKey())
-        ]);
+        const [result] = await Database.delete(query, [modelA.getPrimaryKey(), modelsB.map((modelB) => modelB.getPrimaryKey())]);
 
         if (this.isLoaded(modelA)) {
             if (result.affectedRows == modelsB.length) {
                 const arr: B[] = (modelA as any)[this.modelKey];
-                const idMap = modelsB.map(model => model.getPrimaryKey());
+                const idMap = modelsB.map((model) => model.getPrimaryKey());
                 modelA.setManyRelation(
                     this,
-                    arr.filter(model => {
+                    arr.filter((model) => {
                         return !idMap.includes(model.getPrimaryKey());
                     })
                 );
             } else {
                 // This could happen in race conditions and simultanious requests
-                console.warn(
-                    "Warning: unlinking expected to affect " +
-                    modelsB.length +
-                    " rows, but only affected " +
-                    result.affectedRows +
-                    " rows"
-                );
+                console.warn("Warning: unlinking expected to affect " + modelsB.length + " rows, but only affected " + result.affectedRows + " rows");
 
                 // TODO: Manually correct by doing a query (safest)
                 throw new Error("Fallback behaviour net yet implemented");

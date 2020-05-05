@@ -15,11 +15,23 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
      */
     modelKey: Key;
 
+    /**
+     * Sort the loading of this relation
+     */
+    sortKey: keyof B | undefined;
+    sortOrder: "ASC" | "DESC" = "ASC";
+
     constructor(modelA: { new (): A } & typeof Model, modelB: { new (): B } & typeof Model, modelKey: Key, foreignKey: keyof B) {
         this.modelA = modelA;
         this.modelB = modelB;
         this.modelKey = modelKey;
         this.foreignKey = foreignKey;
+    }
+
+    setSort(key: keyof B, order: "ASC" | "DESC" = "ASC"): this {
+        this.sortKey = key;
+        this.sortOrder = order;
+        return this;
     }
 
     /// Whether this relation is loaded
@@ -37,11 +49,25 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
         return `LEFT JOIN ${this.modelB.table} as ${namespaceB} on ${namespaceB}.${this.foreignKey} = ${namespaceA}.${this.modelA.primary.name}\n`;
     }
 
+    orderByQuery(namespaceB: string): string {
+        if (this.sortKey === undefined) {
+            return "";
+        }
+        let str = `\nORDER BY ${namespaceB}.${this.sortKey}`;
+        if (this.sortOrder == "DESC") {
+            str += " DESC";
+        }
+        return str + "\n";
+    }
+
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A): Promise<B[]> {
+    async load(modelA: A, sorted: boolean = true): Promise<B[]> {
         const namespaceB = "B";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.modelB.table} as ${namespaceB}\n`;
         str += `WHERE ${namespaceB}.${this.foreignKey} = ?`;
+        if (sorted) {
+            str += this.orderByQuery("B");
+        }
 
         const [rows] = await Database.select(str, [modelA.getPrimaryKey()]);
         const modelsB = this.modelB.fromRows(rows, namespaceB) as B[];

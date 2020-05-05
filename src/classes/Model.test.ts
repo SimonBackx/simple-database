@@ -34,7 +34,9 @@ describe("Model", () => {
 
         static parent = new ManyToOneRelation(TestModel, "parent");
         static friends = new ManyToManyRelation(TestModel, TestModel, "friends");
+        static sortedFriends = new ManyToManyRelation(TestModel, TestModel, "sortedFriends").setSort("priority");
         static children = new OneToManyRelation(TestModel, TestModel, "children", "parentId");
+        static sortedChildren = new OneToManyRelation(TestModel, TestModel, "sortedChildren", "parentId").setSort("count");
     }
 
     test("Not possible to choose own primary key for integer type primary", async () => {
@@ -142,23 +144,27 @@ describe("Model", () => {
             throw new Error("Save failed");
         }
 
-        const m = new TestModel() as any;
-        m.name = "My name";
-        m.isActive = true;
-        m.count = 1;
-        m.createdOn = new Date();
-        // MySQL cannot save milliseconds. Data is rounded if not set to zero.
-        m.createdOn.setMilliseconds(0);
+        const counts = [4, 5, 1];
 
-        m.birthDay = new Date(1990, 0, 1);
-        m.setRelation(TestModel.parent, other);
-        expect(m.parent.id).toEqual(other.id);
-        expect(m.parentId).toEqual(other.id);
+        for (const count of counts) {
+            const m = new TestModel() as any;
+            m.name = "My name " + count;
+            m.isActive = true;
+            m.count = count;
+            m.createdOn = new Date();
+            // MySQL cannot save milliseconds. Data is rounded if not set to zero.
+            m.createdOn.setMilliseconds(0);
 
-        await m.save();
-        expect(m.existsInDatabase).toEqual(true);
-        expect(m.parentId).toEqual(other.id);
-        expect(m.parent.id).toEqual(other.id);
+            m.birthDay = new Date(1990, 0, 1);
+            m.setRelation(TestModel.parent, other);
+            expect(m.parent.id).toEqual(other.id);
+            expect(m.parentId).toEqual(other.id);
+
+            await m.save();
+            expect(m.existsInDatabase).toEqual(true);
+            expect(m.parentId).toEqual(other.id);
+            expect(m.parent.id).toEqual(other.id);
+        }
 
         // Check other way
         const o = await TestModel.getByID(other.id);
@@ -168,12 +174,13 @@ describe("Model", () => {
         }
 
         const children = await TestModel.children.load(o);
-        expect(children).toHaveLength(1);
+        expect(children).toHaveLength(3);
         expect(TestModel.children.isLoaded(o)).toBeTrue();
 
-        const children2 = await TestModel.children.load(m);
-        expect(children2).toHaveLength(0);
-        expect(TestModel.children.isLoaded(m)).toBeTrue();
+        const sortedChildren = await TestModel.sortedChildren.load(o);
+        expect(sortedChildren).toHaveLength(3);
+        expect(TestModel.sortedChildren.isLoaded(o)).toBeTrue();
+        expect(sortedChildren.map((c) => c.count)).toEqual([1, 4, 5]);
     });
 
     test("Setting a many to one relation by ID", async () => {
