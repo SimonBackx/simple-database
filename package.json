@@ -6,7 +6,8 @@
     "scripts": {
         "test": "jest --setupFiles dotenv/config",
         "build": "tsc -p . --declaration",
-        "migrations": "NODE_ENV=development ts-node ./migrations.ts"
+        "migrations": "NODE_ENV=development ts-node ./migrations.ts",
+        "lint": "eslint . --ext .js,.ts"
     },
     "files": [
         "dist"
