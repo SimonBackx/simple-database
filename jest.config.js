@@ -7,6 +7,7 @@ module.exports = {
     moduleDirectories: [
         "node_modules",
     ],
-    globalSetup: "./tests/jest.global.setup.ts"
+    globalSetup: "./tests/jest.global.setup.ts",
+    modulePathIgnorePatterns: ["dist"]
     //verbose: true,
 };
