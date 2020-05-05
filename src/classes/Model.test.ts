@@ -4,6 +4,7 @@ import { Database } from "./Database";
 import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
 import { Model } from "./Model";
+import { OneToManyRelation } from "./OneToManyRelation";
 
 describe("Model", () => {
     // Create a new class
@@ -28,11 +29,12 @@ describe("Model", () => {
         @column({ type: "date", nullable: true })
         birthDay: Date | null = null;
 
-        @column({ foreignKey: TestModel.partner, type: "integer", nullable: true })
-        partnerId: number | null = null; // null = no address
+        @column({ foreignKey: TestModel.parent, type: "integer", nullable: true })
+        parentId: number | null = null; // null = no address
 
-        static partner = new ManyToOneRelation(TestModel, "partner");
+        static parent = new ManyToOneRelation(TestModel, "parent");
         static friends = new ManyToManyRelation(TestModel, TestModel, "friends");
+        static children = new OneToManyRelation(TestModel, TestModel, "children", "parentId");
     }
 
     test("Not possible to choose own primary key for integer type primary", async () => {
@@ -80,7 +82,7 @@ describe("Model", () => {
 
     test("You cannot set a relation directly", async () => {
         const other = new TestModel();
-        other.name = "My partner";
+        other.name = "My parent";
         other.isActive = true;
         other.count = 1;
         other.createdOn = new Date();
@@ -98,16 +100,16 @@ describe("Model", () => {
         m.birthDay = new Date(1990, 0, 1);
 
         // setRelation is the correct way to do it (it would throw now):
-        //m.setRelation(TestModel.partner, other);
+        //m.setRelation(TestModel.parent, other);
         // but we test what happens if we set the relation the wrong way
-        (m as any).partner = other;
+        (m as any).parent = other;
 
         await expect(m.save()).rejects.toThrow(/foreign key/i);
     });
 
     test("Save before setting a many to one relation", () => {
         const other = new TestModel();
-        other.name = "My partner";
+        other.name = "My parent";
         other.isActive = true;
         other.count = 1;
         other.createdOn = new Date();
@@ -123,18 +125,22 @@ describe("Model", () => {
         m.birthDay = new Date(1990, 0, 1);
 
         expect(() => {
-            m.setRelation(TestModel.partner, other);
+            m.setRelation(TestModel.parent, other);
         }).toThrow(/not yet saved/i);
     });
 
     test("Setting a many to one relation", async () => {
         const other = new TestModel();
-        other.name = "My partner";
+        other.name = "My parent";
         other.isActive = true;
         other.count = 1;
         other.createdOn = new Date();
+        other.createdOn.setMilliseconds(0);
         await other.save();
         expect(other.existsInDatabase).toEqual(true);
+        if (!other.id) {
+            throw new Error("Save failed");
+        }
 
         const m = new TestModel() as any;
         m.name = "My name";
@@ -145,25 +151,40 @@ describe("Model", () => {
         m.createdOn.setMilliseconds(0);
 
         m.birthDay = new Date(1990, 0, 1);
-        m.setRelation(TestModel.partner, other);
-        expect(m.partner.id).toEqual(other.id);
-        expect(m.partnerId).toEqual(other.id);
+        m.setRelation(TestModel.parent, other);
+        expect(m.parent.id).toEqual(other.id);
+        expect(m.parentId).toEqual(other.id);
 
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
-        expect(m.partnerId).toEqual(other.id);
-        expect(m.partner.id).toEqual(other.id);
+        expect(m.parentId).toEqual(other.id);
+        expect(m.parent.id).toEqual(other.id);
+
+        // Check other way
+        const o = await TestModel.getByID(other.id);
+        expect(o).toEqual(other);
+        if (!o) {
+            throw new Error("Save failed");
+        }
+
+        const children = await TestModel.children.load(o);
+        expect(children).toHaveLength(1);
+        expect(TestModel.children.isLoaded(o)).toBeTrue();
+
+        const children2 = await TestModel.children.load(m);
+        expect(children2).toHaveLength(0);
+        expect(TestModel.children.isLoaded(m)).toBeTrue();
     });
 
     test("Setting a many to one relation by ID", async () => {
         const other = new TestModel();
-        other.name = "My partner";
+        other.name = "My parent";
         other.isActive = true;
         other.count = 1;
         other.createdOn = new Date();
         await other.save();
         expect(other.existsInDatabase).toEqual(true);
-        expect(other.partnerId).toEqual(null);
+        expect(other.parentId).toEqual(null);
         expect(other.birthDay).toEqual(null);
 
         const m = new TestModel() as any;
@@ -175,13 +196,13 @@ describe("Model", () => {
         m.createdOn.setMilliseconds(0);
 
         m.birthDay = new Date(1990, 0, 1);
-        m.partnerId = other.id;
+        m.parentId = other.id;
 
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
-        expect(m.partnerId).toEqual(other.id);
-        expect(TestModel.partner.isLoaded(m)).toEqual(false);
-        expect(TestModel.partner.isSet(m)).toEqual(false);
+        expect(m.parentId).toEqual(other.id);
+        expect(TestModel.parent.isLoaded(m)).toEqual(false);
+        expect(TestModel.parent.isSet(m)).toEqual(false);
 
         const [rows] = await Database.select("SELECT * from testModels where id = ?", [m.id]);
         expect(rows).toHaveLength(1);
@@ -189,14 +210,14 @@ describe("Model", () => {
         expect(row).toHaveProperty("testModels");
         const selected = TestModel.fromRow(row["testModels"]) as any;
 
-        expect(TestModel.partner.isLoaded(selected)).toEqual(false);
-        expect(TestModel.partner.isSet(selected)).toEqual(false);
-        expect(selected.partnerId).toEqual(other.id);
+        expect(TestModel.parent.isLoaded(selected)).toEqual(false);
+        expect(TestModel.parent.isSet(selected)).toEqual(false);
+        expect(selected.parentId).toEqual(other.id);
     });
 
     test("Clearing a many to one relation", async () => {
         const other = new TestModel();
-        other.name = "My partner";
+        other.name = "My parent";
         other.isActive = true;
         other.count = 1;
         other.createdOn = new Date();
@@ -208,29 +229,29 @@ describe("Model", () => {
         m.isActive = true;
         m.count = 1;
         m.createdOn = new Date();
-        m.partnerId = other.id;
+        m.parentId = other.id;
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
-        expect(m.partnerId).toEqual(other.id);
+        expect(m.parentId).toEqual(other.id);
 
-        m.setOptionalRelation(TestModel.partner, null);
-        expect(m.partnerId).toEqual(null);
-        expect(m.partner).toEqual(null);
+        m.setOptionalRelation(TestModel.parent, null);
+        expect(m.parentId).toEqual(null);
+        expect(m.parent).toEqual(null);
         await m.save();
-        expect(m.partnerId).toEqual(null);
-        expect(m.partner).toEqual(null);
+        expect(m.parentId).toEqual(null);
+        expect(m.parent).toEqual(null);
 
         const [rows] = await Database.select("SELECT * from testModels where id = ?", [m.id]);
         expect(rows).toHaveLength(1);
         const row = rows[0];
         expect(row).toHaveProperty("testModels");
         const selected = TestModel.fromRow(row["testModels"]) as any;
-        expect(selected.partnerId).toEqual(null);
+        expect(selected.parentId).toEqual(null);
     });
 
     test("Clearing a many to one relation by ID", async () => {
         const other = new TestModel();
-        other.name = "My partner";
+        other.name = "My parent";
         other.isActive = true;
         other.count = 1;
         other.createdOn = new Date();
@@ -242,22 +263,22 @@ describe("Model", () => {
         m.isActive = true;
         m.count = 1;
         m.createdOn = new Date();
-        m.partnerId = other.id;
+        m.parentId = other.id;
         expect(await m.save()).toEqual(true);
 
         expect(m.existsInDatabase).toEqual(true);
-        expect(m.partnerId).toEqual(other.id);
+        expect(m.parentId).toEqual(other.id);
 
-        m.partnerId = null;
+        m.parentId = null;
         expect(await m.save()).toEqual(true);
-        expect(m.partnerId).toEqual(null);
+        expect(m.parentId).toEqual(null);
 
         const [rows] = await Database.select("SELECT * from testModels where id = ?", [m.id]);
         expect(rows).toHaveLength(1);
         const row = rows[0];
         expect(row).toHaveProperty("testModels");
         const selected = TestModel.fromRow(row["testModels"]) as any;
-        expect(selected.partnerId).toEqual(null);
+        expect(selected.parentId).toEqual(null);
     });
 
     test("No query if no changes", async () => {
@@ -271,7 +292,7 @@ describe("Model", () => {
         expect(firstSave).toEqual(true);
 
         expect(other.existsInDatabase).toEqual(true);
-        expect(other.partnerId).toEqual(null);
+        expect(other.parentId).toEqual(null);
         expect(other.birthDay).toEqual(null);
 
         other.count = 1;
@@ -340,12 +361,9 @@ describe("Model", () => {
         }
 
         // Check also saved in database
-        const [rows] = await Database.select(
-            "SELECT * from testModels " +
-            TestModel.friends.joinQuery("testModels", "friends") +
-            " where testModels.id = ?",
-            [meWithFriends.id]
-        );
+        const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
+            meWithFriends.id,
+        ]);
 
         const _meWithoutFriends = TestModel.fromRow(rows[0]["testModels"]);
         expect(_meWithoutFriends).toBeDefined();
@@ -369,12 +387,9 @@ describe("Model", () => {
             expect("other friends not loaded").toEqual("other friends loaded");
         }
 
-        const [rows] = await Database.select(
-            "SELECT * from testModels " +
-            TestModel.friends.joinQuery("testModels", "friends") +
-            " where testModels.id = ?",
-            [meWithFriends.id]
-        );
+        const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
+            meWithFriends.id,
+        ]);
 
         const meAgain = TestModel.fromRow(rows[0]["testModels"]);
         expect(meAgain).toBeDefined();
@@ -395,12 +410,9 @@ describe("Model", () => {
             expect("other friends not loaded").toEqual("other friends loaded");
         }
 
-        const [rows] = await Database.select(
-            "SELECT * from testModels " +
-            TestModel.friends.joinQuery("testModels", "friends") +
-            " where testModels.id = ?",
-            [meWithFriends.id]
-        );
+        const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
+            meWithFriends.id,
+        ]);
 
         const meAgain = TestModel.fromRow(rows[0]["testModels"]);
         expect(meAgain).toBeDefined();
@@ -416,12 +428,9 @@ describe("Model", () => {
         await TestModel.friends.link(meWithoutFriends, friend3, friend2, friend1);
         expect(TestModel.friends.isLoaded(meWithoutFriends)).toEqual(false);
 
-        const [rows] = await Database.select(
-            "SELECT * from testModels " +
-            TestModel.friends.joinQuery("testModels", "friends") +
-            " where testModels.id = ?",
-            [meWithoutFriends.id]
-        );
+        const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
+            meWithoutFriends.id,
+        ]);
 
         const meAgain = TestModel.fromRow(rows[0]["testModels"]);
         expect(meAgain).toBeDefined();
@@ -430,7 +439,7 @@ describe("Model", () => {
 
         const friendsAgain = TestModel.fromRows(rows, "friends");
         expect(friendsAgain).toHaveLength(3);
-        expect(friendsAgain.map(f => f.id)).toIncludeSameMembers([friend3.id, friend2.id, friend1.id]);
+        expect(friendsAgain.map((f) => f.id)).toIncludeSameMembers([friend3.id, friend2.id, friend1.id]);
     });
 
     test("Unlink a not loaded many to many relation", async () => {
@@ -438,12 +447,9 @@ describe("Model", () => {
         await TestModel.friends.unlink(meWithoutFriends, friend3);
         expect(TestModel.friends.isLoaded(meWithoutFriends)).toEqual(false);
 
-        const [rows] = await Database.select(
-            "SELECT * from testModels " +
-            TestModel.friends.joinQuery("testModels", "friends") +
-            " where testModels.id = ?",
-            [meWithoutFriends.id]
-        );
+        const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
+            meWithoutFriends.id,
+        ]);
 
         const meAgain = TestModel.fromRow(rows[0]["testModels"]);
         expect(meAgain).toBeDefined();
@@ -451,7 +457,7 @@ describe("Model", () => {
         expect(meAgain.id).toEqual(meWithoutFriends.id);
 
         const friendsAgain = TestModel.fromRows(rows, "friends");
-        expect(friendsAgain.map(f => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
+        expect(friendsAgain.map((f) => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
     });
 
     test("Load a M2M relation", async () => {
@@ -467,7 +473,7 @@ describe("Model", () => {
         const friends = await TestModel.friends.load(selected);
         expect(TestModel.friends.isLoaded(selected)).toEqual(true);
         expect(selected.friends).toEqual(friends);
-        expect(friends.map(f => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
+        expect(friends.map((f) => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
     });
 
     test("Clear a not loaded many to many relation", async () => {
@@ -476,12 +482,9 @@ describe("Model", () => {
         expect(TestModel.friends.isLoaded(meWithoutFriends)).toEqual(true); // should be true, because we can automatically load the relation if it is not yet loaded
         expect((meWithoutFriends as any).friends).toHaveLength(0);
 
-        const [rows] = await Database.select(
-            "SELECT * from testModels " +
-            TestModel.friends.joinQuery("testModels", "friends") +
-            " where testModels.id = ?",
-            [meWithoutFriends.id]
-        );
+        const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
+            meWithoutFriends.id,
+        ]);
 
         const meAgain = TestModel.fromRow(rows[0]["testModels"]);
         expect(meAgain).toBeDefined();

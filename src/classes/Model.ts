@@ -2,6 +2,7 @@ import { Column } from "./Column";
 import { Database } from "./Database";
 import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
+import { OneToManyRelation } from "./OneToManyRelation";
 
 export class Model /* static implements RowInitiable<Model> */ {
     static primary: Column;
@@ -100,10 +101,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         return t;
     }
 
-    setRelation<Key extends keyof any, Value extends Model, V extends Value>(
-        relation: ManyToOneRelation<Key, Value>,
-        value: V
-    ): this & Record<Key, V> {
+    setRelation<Key extends keyof any, Value extends Model, V extends Value>(relation: ManyToOneRelation<Key, Value>, value: V): this & Record<Key, V> {
         if (!value.existsInDatabase) {
             throw new Error("You cannot set a relation to a model that are not yet saved in the database.");
         }
@@ -113,8 +111,11 @@ export class Model /* static implements RowInitiable<Model> */ {
         return t;
     }
 
+    /**
+     * Set a many relation. Note that this doesn't save the relation! You'll need to use the methods of the relation instead
+     */
     setManyRelation<Key extends keyof any, Value extends Model>(
-        relation: ManyToManyRelation<Key, any, Value>,
+        relation: ManyToManyRelation<Key, any, Value> | OneToManyRelation<Key, any, Value>,
         value: Value[]
     ): this & Record<Key, Value[]> {
         value.forEach((v) => {
@@ -190,6 +191,21 @@ export class Model /* static implements RowInitiable<Model> */ {
         return this[this.static.primary.name];
     }
 
+    /**
+     * Get a model by its primary key
+     * @param id primary key
+     */
+    static async getByID<T extends typeof Model>(this: T, id: number): Promise<InstanceType<T> | undefined> {
+        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} = ? LIMIT 1`, [id]);
+
+        if (rows.length == 0) {
+            return undefined;
+        }
+
+        // Read member + address from first row
+        return this.fromRow(rows[0][this.table]);
+    }
+
     async save(): Promise<boolean> {
         if (!this.static.table) {
             throw new Error("Table name not set");
@@ -231,11 +247,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         const id = this.getPrimaryKey();
         if (!id) {
             if (this.existsInDatabase) {
-                throw new Error(
-                    "Model " +
-                    this.constructor.name +
-                    " was loaded from the Database, but didn't select the ID. Saving not possible."
-                );
+                throw new Error("Model " + this.constructor.name + " was loaded from the Database, but didn't select the ID. Saving not possible.");
             }
         } else {
             if (!this.existsInDatabase && this.static.primary.type == "integer") {
@@ -281,15 +293,10 @@ export class Model /* static implements RowInitiable<Model> */ {
             if (!this.existsInDatabase && this[column.name] === undefined) {
                 // In the future we might make some columns optional because they have a default value in the database.
                 // But that could cause inconsitent state, so it would be better to generate default values in code.
-                throw new Error(
-                    "Tried to create model " + this.constructor.name + " with undefined property " + column.name
-                );
+                throw new Error("Tried to create model " + this.constructor.name + " with undefined property " + column.name);
             }
 
-            if (
-                this[column.name] !== undefined &&
-                column.isChanged(this.savedProperties.get(column.name), this[column.name])
-            ) {
+            if (this[column.name] !== undefined && column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
                 set[column.name] = column.to(this[column.name]);
             } else {
                 // Check JSON fields. The reference could have stayed the same, but the value might have changed.
@@ -315,17 +322,11 @@ export class Model /* static implements RowInitiable<Model> */ {
                 if (this.static.debug) console.log(`New id = ${this[this.static.primary.name]}`);
             }
         } else {
-            if (this.static.debug)
-                console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
+            if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
-            const [result] = await Database.update(
-                "UPDATE `" + this.static.table + "` SET ? WHERE `" + this.static.primary.name + "` = ?",
-                [set, id]
-            );
+            const [result] = await Database.update("UPDATE `" + this.static.table + "` SET ? WHERE `" + this.static.primary.name + "` = ?", [set, id]);
             if (result.changedRows != 1) {
-                console.warn(
-                    `Updated ${this.constructor.name}, but it didn't change a row. Check if ID exists.`
-                );
+                console.warn(`Updated ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
             }
         }
 
@@ -336,34 +337,20 @@ export class Model /* static implements RowInitiable<Model> */ {
 
     async delete() {
         const id = this.getPrimaryKey();
-    
+
         if (!id && this.existsInDatabase) {
-            throw new Error(
-                "Model " +
-                this.constructor.name +
-                " was loaded from the Database, but didn't select the ID. Deleting not possible."
-            );
+            throw new Error("Model " + this.constructor.name + " was loaded from the Database, but didn't select the ID. Deleting not possible.");
         }
 
         if (!id || !this.existsInDatabase) {
-            throw new Error(
-                "Model " +
-                this.constructor.name +
-                " can't be deleted if it doesn't exist in the database already"
-            );
+            throw new Error("Model " + this.constructor.name + " can't be deleted if it doesn't exist in the database already");
         }
 
-        if (this.static.debug)
-            console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
+        if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
-        const [result] = await Database.delete(
-            "DELETE FROM `" + this.static.table + "` WHERE `" + this.static.primary.name + "` = ?",
-            [id]
-        );
+        const [result] = await Database.delete("DELETE FROM `" + this.static.table + "` WHERE `" + this.static.primary.name + "` = ?", [id]);
         if (result.affectedRows != 1) {
-            console.warn(
-                `Deleted ${this.constructor.name}, but it didn't change a row. Check if ID exists.`
-            );
+            console.warn(`Deleted ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
         }
 
         this.existsInDatabase = false;

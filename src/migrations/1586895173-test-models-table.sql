@@ -5,11 +5,11 @@ CREATE TABLE `testModels` (
   `createdOn` datetime DEFAULT NULL,
   `count` int DEFAULT NULL,
   `birthDay` date DEFAULT NULL,
-  `partnerId` int unsigned DEFAULT NULL,
+  `parentId` int unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
-  KEY `partnerId` (`partnerId`),
-  CONSTRAINT `testmodels_ibfk_1` FOREIGN KEY (`partnerId`) REFERENCES `testModels` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  KEY `parentId` (`parentId`),
+  CONSTRAINT `testmodels_ibfk_1` FOREIGN KEY (`parentId`) REFERENCES `testModels` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `_testModels_testModels` (
