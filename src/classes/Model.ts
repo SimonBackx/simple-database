@@ -211,6 +211,9 @@ export class Model /* static implements RowInitiable<Model> */ {
      * @param ids primary key of the models you want to fetch
      */
     static async getByIDs<T extends typeof Model>(this: T, ...ids: number[]): Promise<InstanceType<T>[]> {
+        if (ids.length == 0) {
+            return [];
+        }
         const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} IN (?) LIMIT ?`, [
             ids,
             ids.length,
