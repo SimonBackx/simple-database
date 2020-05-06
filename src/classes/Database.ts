@@ -12,7 +12,7 @@ const pool = mysql.createPool({
     database: process.env.DB_DATABASE,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
 });
 
 const debug = false;
@@ -48,6 +48,10 @@ export const Database = {
                 return resolve(connection);
             });
         });
+    },
+
+    escapeId(value: string): string {
+        return pool.escapeId(value);
     },
 
     async end(): Promise<mysql.MysqlError | undefined> {
@@ -169,5 +173,5 @@ export const Database = {
             });
             this.logQuery(q, hrstart);
         });
-    }
+    },
 };

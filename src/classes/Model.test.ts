@@ -358,7 +358,7 @@ describe("Model", () => {
 
         expect(await meWithFriends.save()).toEqual(true);
 
-        await TestModel.friends.link(meWithFriends, friend1, friend2);
+        await TestModel.friends.link(meWithFriends, [friend1, friend2]);
         if (TestModel.friends.isLoaded(meWithFriends)) {
             expect(meWithFriends.friends).toHaveLength(2);
             expect(meWithFriends.friends[0].id).toEqual(friend1.id);
@@ -382,6 +382,75 @@ describe("Model", () => {
         expect(friends).toHaveLength(2);
         expect(friends[0].id).toEqual(friend1.id);
         expect(friends[1].id).toEqual(friend2.id);
+    });
+
+    test("Set a sorted many to many relationship", async () => {
+        const friend1 = new TestModel();
+        friend1.name = "Friend 1";
+        friend1.isActive = true;
+        friend1.count = 1;
+        friend1.createdOn = new Date();
+
+        expect(await friend1.save()).toEqual(true);
+
+        const friend2 = new TestModel();
+        friend2.name = "Friend 2";
+        friend2.isActive = true;
+        friend2.count = 2;
+        friend2.createdOn = new Date();
+
+        expect(await friend2.save()).toEqual(true);
+
+        const friend3 = new TestModel();
+        friend3.name = "Friend 3";
+        friend3.isActive = true;
+        friend3.count = 3;
+        friend3.createdOn = new Date();
+
+        expect(await friend3.save()).toEqual(true);
+
+        const meWithFriends = new TestModel().setManyRelation(TestModel.sortedFriends, []);
+        meWithFriends.name = "Me";
+        meWithFriends.isActive = true;
+        meWithFriends.count = 1;
+        meWithFriends.createdOn = new Date();
+
+        expect(await meWithFriends.save()).toEqual(true);
+
+        await TestModel.sortedFriends.link(meWithFriends, [friend1, friend2, friend3], [6, 2, 1]);
+        if (TestModel.sortedFriends.isLoaded(meWithFriends)) {
+            expect(meWithFriends.sortedFriends).toHaveLength(3);
+            expect(meWithFriends.sortedFriends[0].id).toEqual(friend1.id);
+            expect(meWithFriends.sortedFriends[1].id).toEqual(friend2.id);
+            expect(meWithFriends.sortedFriends[2].id).toEqual(friend3.id);
+        } else {
+            expect("other friends not loaded").toEqual("other friends loaded");
+        }
+
+        // Check also saved in database
+        const [rows] = await Database.select(
+            "SELECT * from testModels " +
+                TestModel.sortedFriends.joinQuery("testModels", "sortedFriends") +
+                " where testModels.id = ? " +
+                TestModel.sortedFriends.orderByQuery("testModels", "sortedFriends"),
+            [meWithFriends.id]
+        );
+
+        const meWithoutFriends = TestModel.fromRow(rows[0]["testModels"]);
+        expect(meWithoutFriends).toBeDefined();
+        if (!meWithoutFriends) return;
+        expect(meWithoutFriends.id).toEqual(meWithFriends.id);
+
+        const friends = TestModel.fromRows(rows, "sortedFriends");
+        expect(friends).toHaveLength(3);
+        expect(friends[0].id).toEqual(friend3.id);
+        expect(friends[1].id).toEqual(friend2.id);
+        expect(friends[2].id).toEqual(friend1.id);
+
+        const _friends = await TestModel.sortedFriends.load(meWithFriends);
+        expect(_friends[0].id).toEqual(friend3.id);
+        expect(_friends[1].id).toEqual(friend2.id);
+        expect(_friends[2].id).toEqual(friend1.id);
     });
 
     test("Unlink a many to many relationship", async () => {
@@ -432,7 +501,7 @@ describe("Model", () => {
 
     test("Link a not loaded many to many relation", async () => {
         // Now unlink one
-        await TestModel.friends.link(meWithoutFriends, friend3, friend2, friend1);
+        await TestModel.friends.link(meWithoutFriends, [friend3, friend2, friend1]);
         expect(TestModel.friends.isLoaded(meWithoutFriends)).toEqual(false);
 
         const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
@@ -540,6 +609,6 @@ describe("Model", () => {
         other.createdOn = new Date();
 
         expect(await other.save()).toEqual(true);
-        await expect(TestModel.friends.link(other, friend1, friend2)).rejects.toThrow(/not saved yet/);
+        await expect(TestModel.friends.link(other, [friend1, friend2])).rejects.toThrow(/not saved yet/);
     });
 });

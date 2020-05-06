@@ -82,7 +82,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     /// Load the relation of a model and return the loaded models
     async load(modelA: A, sorted: boolean = true): Promise<B[]> {
         const namespaceB = "B";
-        const linkNamespace = "AB";
+        const linkNamespace = "A_B";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.linkTable} as ${linkNamespace}\n`;
         str += `JOIN ${this.modelB.table} as ${namespaceB} on ${linkNamespace}.${this.linkKeyB} = ${namespaceB}.${this.modelB.primary.name}\n`;
         str += `WHERE ${linkNamespace}.${this.linkKeyA} = ?`;
@@ -103,7 +103,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         return Array.isArray((model as any)[this.modelKey]);
     }
 
-    async link(modelA: A, ...modelsB: B[]): Promise<void> {
+    async link(modelA: A, modelsB: B[], sortValues?: any[]): Promise<void> {
         if (!modelA.getPrimaryKey()) {
             throw new Error("Cannot link if model is not saved yet");
         }
@@ -113,10 +113,27 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
                 throw new Error("Cannot link to a model that is not saved yet");
             }
         }
-        const query = `INSERT INTO ${this.linkTable} (${this.linkKeyA}, ${this.linkKeyB}) VALUES ?`;
 
         // Nested arrays are turned into grouped lists (for bulk inserts), e.g. [['a', 'b'], ['c', 'd']] turns into ('a', 'b'), ('c', 'd')
-        const [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA.getPrimaryKey(), modelB.getPrimaryKey()])]);
+        let result: {
+            insertId: any;
+            affectedRows: number;
+        };
+        if (sortValues !== undefined) {
+            if (!this.sortKey) {
+                throw new Error("You cannot set sortValues when no sorting is defined in the relation");
+            }
+            if (sortValues.length != modelsB.length) {
+                throw new Error("Length of sortValues should be the same as modelsB");
+            }
+            const query = `INSERT INTO ${Database.escapeId(this.linkTable)} 
+                (${Database.escapeId(this.linkKeyA)}, ${Database.escapeId(this.linkKeyB)}, ${Database.escapeId(this.sortKey)}) VALUES ?`;
+            [result] = await Database.insert(query, [modelsB.map((modelB, i) => [modelA.getPrimaryKey(), modelB.getPrimaryKey(), sortValues[i]])]);
+        } else {
+            const query = `INSERT INTO ${Database.escapeId(this.linkTable)} 
+                (${Database.escapeId(this.linkKeyA)}, ${Database.escapeId(this.linkKeyB)}) VALUES ?`;
+            [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA.getPrimaryKey(), modelB.getPrimaryKey()])]);
+        }
 
         // If the relation is loaded, also modify the value of the relation
         if (this.isLoaded(modelA)) {
