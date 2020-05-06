@@ -12,7 +12,7 @@ const pool = mysql.createPool({
     database: process.env.DB_DATABASE,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
 });
 
 const debug = false;
@@ -50,6 +50,10 @@ export const Database = {
         });
     },
 
+    escapeId(value: string): string {
+        return pool.escapeId(value);
+    },
+
     async end(): Promise<mysql.MysqlError | undefined> {
         return new Promise((resolve, reject) => {
             pool.end(function (err) {
@@ -71,8 +75,8 @@ export const Database = {
     },
 
     logQuery(_q, _hrstart: [number, number]) {
-        //const hrend = process.hrtime(hrstart)
-        //console.log(q.sql.replace(/\n+ +/g, '\n'), "started at " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms")
+        //const hrend = process.hrtime(hrstart);
+        //console.warn(q.sql.replace(/\n+ +/g, "\n"), "started at " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms");
     },
 
     finishQuery(_q, _hrstart: [number, number]) {
@@ -169,5 +173,5 @@ export const Database = {
             });
             this.logQuery(q, hrstart);
         });
-    }
+    },
 };

@@ -1,4 +1,4 @@
-import { Decoder, isEncodeable,ObjectData } from '@simonbackx/simple-encoding';
+import { Decoder, isEncodeable, ObjectData } from "@simonbackx/simple-encoding";
 
 import { ColumnType } from "../decorators/Column";
 
@@ -58,13 +58,13 @@ export class Column {
 
             case "json": {
                 // Mapped correctly by node MySQL
-                let parsed: any
+                let parsed: any;
                 try {
                     parsed = JSON.parse(data);
                 } catch (e) {
                     // Syntax error. Mark this in the future.
                     console.error(e);
-                    parsed = {}
+                    parsed = {};
                 }
 
                 if (this.decoder) {
@@ -113,11 +113,32 @@ export class Column {
                 return data;
 
             case "json": {
-                let d = data
+                let d = data;
                 if (isEncodeable(data)) {
                     d = data.encode();
                 } else {
-                    console.warn("A non encodeable value has been set for " + this.name + " this is not recommended and might become deprecated in the future.");
+                    if (Array.isArray(data)) {
+                        let warn = false;
+                        d = data.map((v) => {
+                            if (isEncodeable(v)) {
+                                return v.encode();
+                            }
+                            if (!warn) {
+                                warn = true;
+                                console.warn(
+                                    "A non encodeable value has been set for an array item inside " +
+                                        this.name +
+                                        " this is not recommended and might become deprecated in the future."
+                                );
+                            }
+
+                            return v;
+                        });
+                    } else {
+                        console.warn(
+                            "A non encodeable value has been set for " + this.name + " this is not recommended and might become deprecated in the future."
+                        );
+                    }
                 }
                 return JSON.stringify(d);
             }
