@@ -103,7 +103,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         return Array.isArray((model as any)[this.modelKey]);
     }
 
-    async link(modelA: A, modelsB: B[], sortValues?: any[]): Promise<void> {
+    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
         if (!modelA.getPrimaryKey()) {
             throw new Error("Cannot link if model is not saved yet");
         }
@@ -119,19 +119,38 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             insertId: any;
             affectedRows: number;
         };
-        if (sortValues !== undefined) {
-            if (!this.sortKey) {
-                throw new Error("You cannot set sortValues when no sorting is defined in the relation");
+        if (linkTableValues !== undefined) {
+            const linkTableKeys: string[] = Object.keys(linkTableValues);
+
+            for (var property in linkTableValues) {
+                if (linkTableValues.hasOwnProperty(property)) {
+                    if (linkTableValues[property].length != modelsB.length) {
+                        throw new Error(
+                            "Amount of link table values for key " +
+                                property +
+                                " (" +
+                                linkTableValues[property].length +
+                                ") are not equal to amount of models linked (" +
+                                modelsB.length +
+                                ")"
+                        );
+                    }
+                }
             }
-            if (sortValues.length != modelsB.length) {
-                throw new Error("Length of sortValues should be the same as modelsB");
-            }
-            const query = `INSERT INTO ${Database.escapeId(this.linkTable)} 
-                (${Database.escapeId(this.linkKeyA)}, ${Database.escapeId(this.linkKeyB)}, ${Database.escapeId(this.sortKey)}) VALUES ?`;
-            [result] = await Database.insert(query, [modelsB.map((modelB, i) => [modelA.getPrimaryKey(), modelB.getPrimaryKey(), sortValues[i]])]);
+
+            const query = `INSERT INTO ${Database.escapeId(this.linkTable)} (
+                    ${Database.escapeId(this.linkKeyA)}, 
+                    ${Database.escapeId(this.linkKeyB)}, 
+                    ${linkTableKeys.map((k) => Database.escapeId(k)).join(", ")}
+                ) VALUES ?`;
+            [result] = await Database.insert(query, [
+                modelsB.map((modelB, i) => [modelA.getPrimaryKey(), modelB.getPrimaryKey(), ...linkTableKeys.map((k) => linkTableValues[k][i])]),
+            ]);
         } else {
-            const query = `INSERT INTO ${Database.escapeId(this.linkTable)} 
-                (${Database.escapeId(this.linkKeyA)}, ${Database.escapeId(this.linkKeyB)}) VALUES ?`;
+            const query = `INSERT INTO ${Database.escapeId(this.linkTable)} (
+                    ${Database.escapeId(this.linkKeyA)}, 
+                    ${Database.escapeId(this.linkKeyB)}
+                ) VALUES ?`;
             [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA.getPrimaryKey(), modelB.getPrimaryKey()])]);
         }
 

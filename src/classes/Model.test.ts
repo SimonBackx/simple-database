@@ -417,7 +417,7 @@ describe("Model", () => {
 
         expect(await meWithFriends.save()).toEqual(true);
 
-        await TestModel.sortedFriends.link(meWithFriends, [friend1, friend2, friend3], [6, 2, 1]);
+        await TestModel.sortedFriends.link(meWithFriends, [friend1, friend2, friend3], { priority: [6, 2, 1] });
         if (TestModel.sortedFriends.isLoaded(meWithFriends)) {
             expect(meWithFriends.sortedFriends).toHaveLength(3);
             expect(meWithFriends.sortedFriends[0].id).toEqual(friend1.id);
