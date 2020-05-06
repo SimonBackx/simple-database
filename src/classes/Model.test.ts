@@ -451,6 +451,13 @@ describe("Model", () => {
         expect(_friends[0].id).toEqual(friend3.id);
         expect(_friends[1].id).toEqual(friend2.id);
         expect(_friends[2].id).toEqual(friend1.id);
+
+        await TestModel.sortedFriends.setLinkTable(meWithFriends, friend3, { priority: 3 });
+
+        const __friends = await TestModel.sortedFriends.load(meWithFriends);
+        expect(__friends[0].id).toEqual(friend2.id);
+        expect(__friends[1].id).toEqual(friend3.id);
+        expect(__friends[2].id).toEqual(friend1.id);
     });
 
     test("Unlink a many to many relationship", async () => {

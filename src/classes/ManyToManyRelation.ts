@@ -24,7 +24,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     /**
-     * e.g. models_id
+     * e.g. modelsId
      */
     get linkKeyA(): string {
         return (
@@ -36,7 +36,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     /**
-     * e.g. parents_id
+     * e.g. parentsId
      */
     get linkKeyB(): string {
         return (
@@ -101,6 +101,16 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     isLoaded(model: A): model is A & Record<Key, B[]> {
         // Also not loaded if null, since it should be an empty array or an array if it is loaded
         return Array.isArray((model as any)[this.modelKey]);
+    }
+
+    async setLinkTable(modelA: A, modelB: B, linkTableValues: { [key: string]: any }) {
+        let str = `UPDATE ${this.linkTable} SET ? WHERE ${Database.escapeId(this.linkKeyA)} = ? AND ${Database.escapeId(this.linkKeyB)} = ?`;
+
+        const [result] = await Database.update(str, [linkTableValues, modelA.getPrimaryKey(), modelB.getPrimaryKey()]);
+        if (result.changedRows != 1) {
+            // Todo: add option to fail silently
+            throw new Error("Failed to update link table. Check if combination exists");
+        }
     }
 
     async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
