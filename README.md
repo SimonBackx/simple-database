@@ -39,20 +39,6 @@ class TestModel extends Model {
     static partner = new ManyToOneRelation(TestModel, "partner");
     static friends = new ManyToManyRelation(TestModel, TestModel, "friends");
 
-    static async getByID(id: number): Promise<TestModel | undefined> {
-        const [rows] = await Database.select(
-            `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} = ? LIMIT 1`,
-            [id]
-        );
-
-        if (rows.length == 0) {
-            return undefined;
-        }
-
-        // Read member + address from first row
-        return this.fromRow(rows[0][this.table]);
-    }
-
     static async getWithFriends(id: number): Promise<TestModelWithFriends | undefined> {
         // ... implementation with join here
         // note the type safe return type that indicates that the relation is loaded
