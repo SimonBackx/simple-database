@@ -59,7 +59,7 @@ if (!model) {
     throw new Error("Not found");
 }
 await TestModel.friends.load(model);
-if (TestModel.friend.isLoaded(model)) {
+if (TestModel.friends.isLoaded(model)) {
     // model.friends is defined here
     console.log("He has " + model.friends.length + " friends");
     model.logFriendCount();
