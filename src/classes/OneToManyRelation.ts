@@ -35,7 +35,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
     }
 
     /// Whether this relation is loaded
-    isLoaded(model: A): model is A & Record<Key, B> {
+    isLoaded(model: A): model is A & Record<Key, B[]> {
         // Also not loaded if null, since it should be an empty array or an array if it is loaded
         return Array.isArray((model as any)[this.modelKey]);
     }
