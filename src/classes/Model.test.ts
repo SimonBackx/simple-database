@@ -618,4 +618,10 @@ describe("Model", () => {
         expect(await other.save()).toEqual(true);
         await expect(TestModel.friends.link(other, [friend1, friend2])).rejects.toThrow(/not saved yet/);
     });
+
+    test("Get by IDs", async () => {
+        const models = await TestModel.getByIDs(friend1.id, friend2.id, friend3.id, meWithFriends.id!);
+        expect(models).toHaveLength(4);
+        expect(models.map((e) => e.id)).toIncludeAllMembers([friend1.id, friend2.id, friend3.id, meWithFriends.id!]);
+    });
 });

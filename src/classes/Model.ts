@@ -206,6 +206,20 @@ export class Model /* static implements RowInitiable<Model> */ {
         return this.fromRow(rows[0][this.table]);
     }
 
+    /**
+     * Get multiple models by their ID
+     * @param ids primary key of the models you want to fetch
+     */
+    static async getByIDs<T extends typeof Model>(this: T, ...ids: number[]): Promise<InstanceType<T>[]> {
+        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} IN (?) LIMIT ?`, [
+            ids,
+            ids.length,
+        ]);
+
+        // Read member + address from first row
+        return this.fromRows(rows, this.table);
+    }
+
     async save(): Promise<boolean> {
         if (!this.static.table) {
             throw new Error("Table name not set");
