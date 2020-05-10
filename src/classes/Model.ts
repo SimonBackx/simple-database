@@ -142,6 +142,9 @@ export class Model /* static implements RowInitiable<Model> */ {
             if (row[column.name] !== undefined) {
                 const value = column.from(row[column.name]);
                 model[column.name] = value;
+            } else {
+                // Override default value to prevent any saving!
+                model[column.name] = undefined;
             }
         }
 
