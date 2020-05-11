@@ -5,7 +5,7 @@
     "version": "1.4.4",
     "scripts": {
         "test": "jest --setupFiles dotenv/config",
-        "build": "tsc -p . --declaration",
+        "build": "tsc -p . --declaration && cp -a ./src/migrations ./dist/src/migrations",
         "migrations": "NODE_ENV=development ts-node ./migrations.ts",
         "lint": "eslint . --ext .js,.ts"
     },
