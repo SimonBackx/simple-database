@@ -23,7 +23,17 @@ describe("Model", () => {
         @column({ type: "boolean" })
         isActive: boolean;
 
-        @column({ type: "datetime" })
+        @column({
+            type: "datetime",
+            beforeSave: (old?: any) => {
+                if (old === undefined) {
+                    const date = new Date();
+                    date.setMilliseconds(0);
+                    return date;
+                }
+                return old;
+            },
+        })
         createdOn: Date;
 
         @column({ type: "date", nullable: true })
@@ -45,9 +55,24 @@ describe("Model", () => {
         m.name = "My name";
         m.count = 1;
         m.isActive = true;
-        m.createdOn = new Date();
         m.birthDay = new Date(1990, 0, 1);
         await expect(m.save()).rejects.toThrow(/primary/i);
+    });
+
+    test("Before save test", async () => {
+        const m = new TestModel();
+        m.name = "My name";
+        m.isActive = true;
+        m.count = 1;
+        m.birthDay = new Date(1990, 0, 1);
+        await m.save();
+        expect(m.existsInDatabase).toEqual(true);
+        expect(m.createdOn).toBeDate();
+
+        const date = m.createdOn;
+
+        await m.save();
+        expect(m.createdOn).toBe(date);
     });
 
     test("Creating a model requires to set all properties", async () => {
@@ -63,13 +88,11 @@ describe("Model", () => {
         m.name = "My name";
         m.isActive = true;
         m.count = 1;
-        m.createdOn = new Date();
-        // MySQL cannot save milliseconds. Data is rounded if not set to zero.
-        m.createdOn.setMilliseconds(0);
-
         m.birthDay = new Date(1990, 0, 1);
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
+        expect(m.createdOn).toBeDate();
+
         expect(m.id).toBeGreaterThanOrEqual(1);
 
         const [rows] = await Database.select("SELECT * from testModels where id = ?", [m.id]);
@@ -87,18 +110,14 @@ describe("Model", () => {
         other.name = "My parent";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
         await other.save();
+        expect(other.createdOn).toBeDate();
         expect(other.existsInDatabase).toEqual(true);
 
         const m = new TestModel();
         m.name = "My name";
         m.isActive = true;
         m.count = 1;
-        m.createdOn = new Date();
-        // MySQL cannot save milliseconds. Data is rounded if not set to zero.
-        m.createdOn.setMilliseconds(0);
-
         m.birthDay = new Date(1990, 0, 1);
 
         // setRelation is the correct way to do it (it would throw now):
@@ -114,15 +133,11 @@ describe("Model", () => {
         other.name = "My parent";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
 
         const m = new TestModel();
         m.name = "My name";
         m.isActive = true;
         m.count = 1;
-        m.createdOn = new Date();
-        // MySQL cannot save milliseconds. Data is rounded if not set to zero.
-        m.createdOn.setMilliseconds(0);
 
         m.birthDay = new Date(1990, 0, 1);
 
@@ -136,8 +151,6 @@ describe("Model", () => {
         other.name = "My parent";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
-        other.createdOn.setMilliseconds(0);
         await other.save();
         expect(other.existsInDatabase).toEqual(true);
         if (!other.id) {
@@ -151,9 +164,6 @@ describe("Model", () => {
             m.name = "My name " + count;
             m.isActive = true;
             m.count = count;
-            m.createdOn = new Date();
-            // MySQL cannot save milliseconds. Data is rounded if not set to zero.
-            m.createdOn.setMilliseconds(0);
 
             m.birthDay = new Date(1990, 0, 1);
             m.setRelation(TestModel.parent, other);
@@ -188,19 +198,16 @@ describe("Model", () => {
         other.name = "My parent";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
         await other.save();
         expect(other.existsInDatabase).toEqual(true);
         expect(other.parentId).toEqual(null);
         expect(other.birthDay).toEqual(null);
+        expect(other.createdOn).toBeDate();
 
         const m = new TestModel() as any;
         m.name = "My name";
         m.isActive = true;
         m.count = 1;
-        m.createdOn = new Date();
-        // MySQL cannot save milliseconds. Data is rounded if not set to zero.
-        m.createdOn.setMilliseconds(0);
 
         m.birthDay = new Date(1990, 0, 1);
         m.parentId = other.id;
@@ -227,7 +234,6 @@ describe("Model", () => {
         other.name = "My parent";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
         await other.save();
         expect(other.existsInDatabase).toEqual(true);
 
@@ -235,7 +241,6 @@ describe("Model", () => {
         m.name = "My name";
         m.isActive = true;
         m.count = 1;
-        m.createdOn = new Date();
         m.parentId = other.id;
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
@@ -261,7 +266,6 @@ describe("Model", () => {
         other.name = "My parent";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
         expect(await other.save()).toEqual(true);
         expect(other.existsInDatabase).toEqual(true);
 
@@ -269,7 +273,6 @@ describe("Model", () => {
         m.name = "My name";
         m.isActive = true;
         m.count = 1;
-        m.createdOn = new Date();
         m.parentId = other.id;
         expect(await m.save()).toEqual(true);
 
@@ -293,7 +296,6 @@ describe("Model", () => {
         other.name = "No query if no changes";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
 
         const firstSave = await other.save();
         expect(firstSave).toEqual(true);
@@ -312,7 +314,6 @@ describe("Model", () => {
         other.name = "Update a model";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
 
         expect(other.existsInDatabase).toEqual(false);
         expect(await other.save()).toEqual(true);
@@ -330,7 +331,6 @@ describe("Model", () => {
         friend1.name = "Friend 1";
         friend1.isActive = true;
         friend1.count = 1;
-        friend1.createdOn = new Date();
 
         expect(await friend1.save()).toEqual(true);
 
@@ -338,7 +338,6 @@ describe("Model", () => {
         friend2.name = "Friend 2";
         friend2.isActive = true;
         friend2.count = 2;
-        friend2.createdOn = new Date();
 
         expect(await friend2.save()).toEqual(true);
 
@@ -346,7 +345,6 @@ describe("Model", () => {
         friend3.name = "Friend 3";
         friend3.isActive = true;
         friend3.count = 3;
-        friend3.createdOn = new Date();
 
         expect(await friend3.save()).toEqual(true);
 
@@ -354,7 +352,6 @@ describe("Model", () => {
         meWithFriends.name = "Me";
         meWithFriends.isActive = true;
         meWithFriends.count = 1;
-        meWithFriends.createdOn = new Date();
 
         expect(await meWithFriends.save()).toEqual(true);
 
@@ -389,7 +386,6 @@ describe("Model", () => {
         friend1.name = "Friend 1";
         friend1.isActive = true;
         friend1.count = 1;
-        friend1.createdOn = new Date();
 
         expect(await friend1.save()).toEqual(true);
 
@@ -397,7 +393,6 @@ describe("Model", () => {
         friend2.name = "Friend 2";
         friend2.isActive = true;
         friend2.count = 2;
-        friend2.createdOn = new Date();
 
         expect(await friend2.save()).toEqual(true);
 
@@ -405,7 +400,6 @@ describe("Model", () => {
         friend3.name = "Friend 3";
         friend3.isActive = true;
         friend3.count = 3;
-        friend3.createdOn = new Date();
 
         expect(await friend3.save()).toEqual(true);
 
@@ -413,7 +407,6 @@ describe("Model", () => {
         meWithFriends.name = "Me";
         meWithFriends.isActive = true;
         meWithFriends.count = 1;
-        meWithFriends.createdOn = new Date();
 
         expect(await meWithFriends.save()).toEqual(true);
 
@@ -599,7 +592,6 @@ describe("Model", () => {
         friend1.name = "Friend 1";
         friend1.isActive = true;
         friend1.count = 1;
-        friend1.createdOn = new Date();
 
         expect(await friend1.save()).toEqual(true);
 
@@ -607,13 +599,11 @@ describe("Model", () => {
         friend2.name = "Friend 2";
         friend2.isActive = true;
         friend2.count = 1;
-        friend2.createdOn = new Date();
 
         const other = new TestModel().setManyRelation(TestModel.friends, []);
         other.name = "Me";
         other.isActive = true;
         other.count = 1;
-        other.createdOn = new Date();
 
         expect(await other.save()).toEqual(true);
         await expect(TestModel.friends.link(other, [friend1, friend2])).rejects.toThrow(/not saved yet/);

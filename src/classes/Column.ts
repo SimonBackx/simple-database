@@ -8,6 +8,7 @@ export class Column {
     nullable = false;
     primary = false;
     decoder: Decoder<any> | undefined;
+    beforeSave?: (value?: any) => any;
 
     constructor(type: ColumnType, name: string) {
         this.type = type;

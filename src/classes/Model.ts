@@ -277,34 +277,14 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        if (!this.existsInDatabase) {
-            const col = this.static.columns.get("createdOn");
-            if (col && col.type == "datetime" && this["createdOn"] === undefined) {
-                // Set createdOn automatically
-                this["createdOn"] = new Date();
-                this["createdOn"].setMilliseconds(0);
-            }
-
-            // Set updatedOn if not nullable and not yet set
-            const up = this.static.columns.get("updatedOn");
-            if (up && up.type == "datetime" && !up.nullable && this["updatedOn"] === undefined) {
-                // Set updatedOn automatically
-                this["updatedOn"] = new Date();
-                this["updatedOn"].setMilliseconds(0);
-            }
-        } else {
-            // Only check if all updated properties are defined
-            const col = this.static.columns.get("updatedOn");
-            if (col && col.type == "datetime") {
-                // Set updatedOn automatically
-                this["updatedOn"] = new Date();
-                this["updatedOn"].setMilliseconds(0);
-            }
-        }
-
         const set = {};
 
         for (const column of this.static.columns.values()) {
+            // Run beforeSave
+            if (column.beforeSave) {
+                this[column.name] = column.beforeSave(this[column.name]);
+            }
+
             if (column.primary && column.type == "integer") {
                 // Auto increment: not allowed to set
                 continue;

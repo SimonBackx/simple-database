@@ -1,4 +1,4 @@
-import { Decoder } from '@simonbackx/simple-encoding';
+import { Decoder } from "@simonbackx/simple-encoding";
 
 import { Column } from "../classes/Column";
 import { ManyToOneRelation } from "../classes/ManyToOneRelation";
@@ -11,6 +11,7 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
     primary?: boolean;
     nullable?: boolean;
     decoder?: Decoder<any>;
+    beforeSave?: (value?: any) => any;
     foreignKey?: ManyToOneRelation<Key, Value>;
 }) {
     return (target: any /* future typeof Model */, key: string) => {
@@ -29,8 +30,10 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
         }
 
         const column = new Column(settings.type, key);
+        column.beforeSave = settings.beforeSave;
+
         if (settings.decoder) {
-            column.decoder = settings.decoder
+            column.decoder = settings.decoder;
         }
 
         if (settings.nullable) {
