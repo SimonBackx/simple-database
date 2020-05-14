@@ -282,7 +282,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         for (const column of this.static.columns.values()) {
             // Run beforeSave
             if (column.beforeSave) {
-                this[column.name] = column.beforeSave(this[column.name]);
+                this[column.name] = column.beforeSave.call(this, this[column.name]);
             }
 
             if (column.primary && column.type == "integer") {
