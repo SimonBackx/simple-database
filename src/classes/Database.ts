@@ -84,12 +84,12 @@ export const Database = {
         //console.log(q.sql.replace(/\s+/g, " "), "in " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms");
     },
 
-    async select(query: string, values?: any): Promise<[any[], mysql.FieldInfo[]]> {
-        const connection = await this.getConnection();
+    async select(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[any[], mysql.FieldInfo[] | undefined]> {
+        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
         return new Promise((resolve, reject) => {
             const hrstart = this.startQuery();
             const q = connection.query({ sql: query, nestTables: true, values: values }, (err, results, fields) => {
-                connection.release();
+                if (!useConnection) connection.release();
 
                 this.finishQuery(q, hrstart);
 
@@ -103,12 +103,16 @@ export const Database = {
         });
     },
 
-    async insert(query: string, values?: any): Promise<[{ insertId: any; affectedRows: number }, mysql.FieldInfo[]]> {
-        const connection = await this.getConnection();
+    async insert(
+        query: string,
+        values?: any,
+        useConnection?: mysql.PoolConnection
+    ): Promise<[{ insertId: any; affectedRows: number }, mysql.FieldInfo[] | undefined]> {
+        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
         return new Promise((resolve, reject) => {
             const hrstart = this.startQuery();
             const q = connection.query(query, values, (err, results, fields) => {
-                connection.release();
+                if (!useConnection) connection.release();
 
                 this.finishQuery(q, hrstart);
 
@@ -121,12 +125,12 @@ export const Database = {
         });
     },
 
-    async update(query: string, values?: any): Promise<[{ changedRows: number }, mysql.FieldInfo[]]> {
-        const connection = await this.getConnection();
+    async update(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[{ changedRows: number }, mysql.FieldInfo[] | undefined]> {
+        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
         return new Promise((resolve, reject) => {
             const hrstart = this.startQuery();
             const q = connection.query(query, values, (err, results, fields) => {
-                connection.release();
+                if (!useConnection) connection.release();
 
                 this.finishQuery(q, hrstart);
 
@@ -139,12 +143,12 @@ export const Database = {
         });
     },
 
-    async delete(query: string, values?: any): Promise<[{ affectedRows: number }, mysql.FieldInfo[]]> {
-        const connection = await this.getConnection();
+    async delete(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[{ affectedRows: number }, mysql.FieldInfo[] | undefined]> {
+        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
         return new Promise((resolve, reject) => {
             const hrstart = this.startQuery();
             const q = connection.query(query, values, (err, results, fields) => {
-                connection.release();
+                if (!useConnection) connection.release();
 
                 this.finishQuery(q, hrstart);
 
@@ -157,12 +161,12 @@ export const Database = {
         });
     },
 
-    async statement(query: string, values?: any): Promise<[any, any]> {
-        const connection = await this.getConnection();
+    async statement(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[any, any]> {
+        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
         return new Promise((resolve, reject) => {
             const hrstart = this.startQuery();
             const q = connection.query(query, values, (err, results, fields) => {
-                connection.release();
+                if (!useConnection) connection.release();
 
                 this.finishQuery(q, hrstart);
 
