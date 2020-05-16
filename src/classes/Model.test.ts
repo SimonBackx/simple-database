@@ -5,8 +5,29 @@ import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
 import { Model } from "./Model";
 import { OneToManyRelation } from "./OneToManyRelation";
+import { Encodeable, Data } from "@simonbackx/simple-encoding";
 
 describe("Model", () => {
+    class TestDecoder implements Encodeable {
+        latestVersion = 3;
+        id: number;
+
+        constructor(id: number) {
+            this.id = id;
+        }
+
+        encode(version?: number) {
+            expect(version).toEqual(3);
+            return {
+                id: this.id,
+            };
+        }
+
+        static decode(data: Data): TestDecoder {
+            expect(data.version).toEqual(3);
+            return new TestDecoder(data.field("id").number);
+        }
+    }
     // Create a new class
     class TestModel extends Model {
         static table = "testModels";
@@ -38,6 +59,9 @@ describe("Model", () => {
 
         @column({ type: "date", nullable: true })
         birthDay: Date | null = null;
+
+        @column({ type: "json", decoder: TestDecoder })
+        testDecoder: TestDecoder = new TestDecoder(12);
 
         @column({ foreignKey: TestModel.parent, type: "integer", nullable: true })
         parentId: number | null = null; // null = no address

@@ -69,12 +69,17 @@ export class Column {
                 }
 
                 if (this.decoder) {
-                    return this.decoder.decode(new ObjectData(parsed, this.name));
+                    if (parsed.version === undefined && parsed.value === undefined) {
+                        // Fallback decoding without version (since we don't know the saved version)
+                        return this.decoder.decode(new ObjectData(parsed, this.name));
+                    }
+                    return this.decoder.decode(new ObjectData(parsed.value, this.name, parsed.version));
                 } else {
                     console.warn("It is recommended to always use a decoder for JSON columns");
                 }
 
-                return parsed;
+                // If data comes from before version encoding, fall back to parsed
+                return parsed.version !== undefined && parsed.value !== undefined ? parsed.value : parsed;
             }
 
             default: {
@@ -115,14 +120,18 @@ export class Column {
 
             case "json": {
                 let d = data;
+                let version: number | undefined;
+
                 if (isEncodeable(data)) {
-                    d = data.encode();
+                    version = data.latestVersion;
+                    d = data.encode(version);
                 } else {
                     if (Array.isArray(data)) {
                         let warn = false;
                         d = data.map((v) => {
                             if (isEncodeable(v)) {
-                                return v.encode();
+                                version = version ?? v.latestVersion;
+                                return v.encode(version);
                             }
                             if (!warn) {
                                 warn = true;
@@ -141,7 +150,10 @@ export class Column {
                         );
                     }
                 }
-                return JSON.stringify(d);
+                return JSON.stringify({
+                    version: version,
+                    value: d,
+                });
             }
 
             default: {
