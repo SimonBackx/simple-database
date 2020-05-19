@@ -113,20 +113,9 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
     }
 
-    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
-        if (!modelA.getPrimaryKey()) {
-            throw new Error("Cannot link if model is not saved yet");
-        }
-
-        for (const modelB of modelsB) {
-            if (!modelB.getPrimaryKey()) {
-                throw new Error("Cannot link to a model that is not saved yet");
-            }
-        }
-
+    async linkIDs(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<number> {
         // Nested arrays are turned into grouped lists (for bulk inserts), e.g. [['a', 'b'], ['c', 'd']] turns into ('a', 'b'), ('c', 'd')
         let result: {
-            insertId: any;
             affectedRows: number;
         };
         if (linkTableValues !== undefined) {
@@ -153,26 +142,44 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
                     ${Database.escapeId(this.linkKeyB)}, 
                     ${linkTableKeys.map((k) => Database.escapeId(k)).join(", ")}
                 ) VALUES ?`;
-            [result] = await Database.insert(query, [
-                modelsB.map((modelB, i) => [modelA.getPrimaryKey(), modelB.getPrimaryKey(), ...linkTableKeys.map((k) => linkTableValues[k][i])]),
-            ]);
+            [result] = await Database.insert(query, [modelsB.map((modelB, i) => [modelA, modelB, ...linkTableKeys.map((k) => linkTableValues[k][i])])]);
         } else {
             const query = `INSERT INTO ${Database.escapeId(this.linkTable)} (
                     ${Database.escapeId(this.linkKeyA)}, 
                     ${Database.escapeId(this.linkKeyB)}
                 ) VALUES ?`;
-            [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA.getPrimaryKey(), modelB.getPrimaryKey()])]);
+            [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA, modelB])]);
         }
+        return result.affectedRows;
+    }
+
+    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
+        const modelAId = modelA.getPrimaryKey();
+        if (!modelAId) {
+            throw new Error("Cannot link if model is not saved yet");
+        }
+
+        const affectedRows = await this.linkIDs(
+            modelAId,
+            modelsB.map((modelB) => {
+                const id = modelB.getPrimaryKey();
+                if (!id) {
+                    throw new Error("Cannot link to a model that is not saved yet");
+                }
+                return id;
+            }),
+            linkTableValues
+        );
 
         // If the relation is loaded, also modify the value of the relation
         if (this.isLoaded(modelA)) {
-            if (result.affectedRows == modelsB.length) {
+            if (affectedRows == modelsB.length) {
                 const arr: B[] = (modelA as any)[this.modelKey];
                 arr.push(...modelsB);
             } else {
                 // This could happen in race conditions and simultanious requests
 
-                console.warn("Warning: linking expected to affect " + modelsB.length + " rows, but only affected " + result.affectedRows + " rows");
+                console.warn("Warning: linking expected to affect " + modelsB.length + " rows, but only affected " + affectedRows + " rows");
 
                 // TODO: Manually correct by doing a query (safest)
                 throw new Error("Fallback behaviour net yet implemented");
