@@ -211,6 +211,16 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         modelA.setManyRelation(this, []);
     }
 
+    /**
+     * Delete all the links from modelA for this relation
+     * @param modelA
+     */
+    async syncId(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
+        // todo: add transaction
+        this.clearId(modelA);
+        this.linkIds(modelA, modelsB, linkTableValues);
+    }
+
     async unlink(modelA: A, ...modelsB: B[]): Promise<void> {
         const query = `DELETE FROM ${this.linkTable} WHERE ${this.linkKeyA} = ? AND ${this.linkKeyB} IN (?)`;
 
