@@ -113,7 +113,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
     }
 
-    async linkIDs(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<number> {
+    async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<number> {
         // Nested arrays are turned into grouped lists (for bulk inserts), e.g. [['a', 'b'], ['c', 'd']] turns into ('a', 'b'), ('c', 'd')
         let result: {
             affectedRows: number;
@@ -159,7 +159,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             throw new Error("Cannot link if model is not saved yet");
         }
 
-        const affectedRows = await this.linkIDs(
+        const affectedRows = await this.linkIds(
             modelAId,
             modelsB.map((modelB) => {
                 const id = modelB.getPrimaryKey();
@@ -191,16 +191,23 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      * Delete all the links from modelA for this relation
      * @param modelA
      */
-    async clear(modelA: A): Promise<void> {
+    async clearId(modelA: string | number): Promise<void> {
         const query = `DELETE FROM ${this.linkTable} WHERE ${this.linkKeyA} = ?`;
 
         // Arrays are turned into list, e.g. ['a', 'b'] turns into 'a', 'b'
-        const [result] = await Database.delete(query, [modelA.getPrimaryKey()]);
+        const [result] = await Database.delete(query, [modelA]);
 
         if (result.affectedRows == 0) {
             console.warn("Cleared many to many relation, but didn't deleted any entries");
         }
+    }
 
+    /**
+     * Delete all the links from modelA for this relation
+     * @param modelA
+     */
+    async clear(modelA: A): Promise<void> {
+        this.clearId(modelA.getPrimaryKey()!);
         modelA.setManyRelation(this, []);
     }
 
