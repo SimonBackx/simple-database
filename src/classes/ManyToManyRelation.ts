@@ -207,7 +207,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      * @param modelA
      */
     async clear(modelA: A): Promise<void> {
-        this.clearId(modelA.getPrimaryKey()!);
+        await this.clearId(modelA.getPrimaryKey()!);
         modelA.setManyRelation(this, []);
     }
 
@@ -217,8 +217,8 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      */
     async syncId(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
         // todo: add transaction
-        this.clearId(modelA);
-        this.linkIds(modelA, modelsB, linkTableValues);
+        await this.clearId(modelA);
+        await this.linkIds(modelA, modelsB, linkTableValues);
     }
 
     async unlink(modelA: A, ...modelsB: B[]): Promise<void> {
