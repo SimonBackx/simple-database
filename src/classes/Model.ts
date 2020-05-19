@@ -198,7 +198,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Get a model by its primary key
      * @param id primary key
      */
-    static async getByID<T extends typeof Model>(this: T, id: number): Promise<InstanceType<T> | undefined> {
+    static async getByID<T extends typeof Model>(this: T, id: number | string): Promise<InstanceType<T> | undefined> {
         const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} = ? LIMIT 1`, [id]);
 
         if (rows.length == 0) {
@@ -213,7 +213,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Get multiple models by their ID
      * @param ids primary key of the models you want to fetch
      */
-    static async getByIDs<T extends typeof Model>(this: T, ...ids: number[]): Promise<InstanceType<T>[]> {
+    static async getByIDs<T extends typeof Model>(this: T, ...ids: (number | string)[]): Promise<InstanceType<T>[]> {
         if (ids.length == 0) {
             return [];
         }
