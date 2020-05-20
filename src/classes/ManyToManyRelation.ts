@@ -114,6 +114,9 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<number> {
+        if (modelsB.length == 0) {
+            return 0;
+        }
         // Nested arrays are turned into grouped lists (for bulk inserts), e.g. [['a', 'b'], ['c', 'd']] turns into ('a', 'b'), ('c', 'd')
         let result: {
             affectedRows: number;
