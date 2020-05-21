@@ -10,6 +10,8 @@ export class Column {
     decoder: Decoder<any> | undefined;
     beforeSave?: (value?: any) => any;
 
+    static jsonVersion: number = 0;
+
     constructor(type: ColumnType, name: string) {
         this.type = type;
         this.name = name;
@@ -71,9 +73,9 @@ export class Column {
                 if (this.decoder) {
                     if (parsed.version === undefined && parsed.value === undefined) {
                         // Fallback decoding without version (since we don't know the saved version)
-                        return this.decoder.decode(new ObjectData(parsed, this.name));
+                        return this.decoder.decode(new ObjectData(parsed, { version: 0 }, this.name));
                     }
-                    return this.decoder.decode(new ObjectData(parsed.value, this.name, parsed.version));
+                    return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version }, this.name));
                 } else {
                     console.warn("It is recommended to always use a decoder for JSON columns");
                 }
@@ -120,18 +122,17 @@ export class Column {
 
             case "json": {
                 let d = data;
-                let version: number | undefined;
+
+                const version = (this.constructor as typeof Column).jsonVersion;
 
                 if (isEncodeable(data)) {
-                    version = data.latestVersion;
-                    d = data.encode(version);
+                    d = data.encode({ version: version });
                 } else {
                     if (Array.isArray(data)) {
                         let warn = false;
                         d = data.map((v) => {
                             if (isEncodeable(v)) {
-                                version = version ?? v.latestVersion;
-                                return v.encode(version);
+                                return v.encode({ version: version });
                             }
                             if (!warn) {
                                 warn = true;
