@@ -61,15 +61,25 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
     }
 
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A, sorted: boolean = true): Promise<B[]> {
+    async load(modelA: A, sorted: boolean = true, where?: object): Promise<B[]> {
         const namespaceB = "B";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.modelB.table} as ${namespaceB}\n`;
         str += `WHERE ${namespaceB}.${this.foreignKey} = ?`;
+
+        const params = [modelA.getPrimaryKey()];
+        if (where) {
+            for (const key in where) {
+                if (where.hasOwnProperty(key)) {
+                    str += ` AND ${namespaceB}.\`${key}\` = ?`;
+                    params.push(where[key]);
+                }
+            }
+        }
         if (sorted) {
             str += this.orderByQuery("B");
         }
 
-        const [rows] = await Database.select(str, [modelA.getPrimaryKey()]);
+        const [rows] = await Database.select(str, params);
         const modelsB = this.modelB.fromRows(rows, namespaceB) as B[];
         modelA.setManyRelation(this, modelsB);
         return modelsB;

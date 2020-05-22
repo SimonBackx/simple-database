@@ -80,18 +80,35 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A, sorted: boolean = true): Promise<B[]> {
+    async load(modelA: A, sorted: boolean = true, where?: object, whereLink?: object): Promise<B[]> {
         const namespaceB = "B";
         const linkNamespace = "A_B";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.linkTable} as ${linkNamespace}\n`;
         str += `JOIN ${this.modelB.table} as ${namespaceB} on ${linkNamespace}.${this.linkKeyB} = ${namespaceB}.${this.modelB.primary.name}\n`;
         str += `WHERE ${linkNamespace}.${this.linkKeyA} = ?`;
 
+        const params = [modelA.getPrimaryKey()];
+        if (where) {
+            for (const key in where) {
+                if (where.hasOwnProperty(key)) {
+                    str += ` AND ${namespaceB}.\`${key}\` = ?`;
+                    params.push(where[key]);
+                }
+            }
+        }
+        if (whereLink) {
+            for (const key in whereLink) {
+                if (whereLink.hasOwnProperty(key)) {
+                    str += ` AND ${namespaceB}.\`${key}\` = ?`;
+                    params.push(whereLink[key]);
+                }
+            }
+        }
         if (sorted) {
             str += this.orderByQuery("A", "B");
         }
 
-        const [rows] = await Database.select(str, [modelA.getPrimaryKey()]);
+        const [rows] = await Database.select(str, params);
         const modelsB = this.modelB.fromRows(rows, namespaceB) as B[];
         modelA.setManyRelation(this, modelsB);
         return modelsB;
