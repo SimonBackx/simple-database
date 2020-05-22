@@ -200,7 +200,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         // Arrays are turned into list, e.g. ['a', 'b'] turns into 'a', 'b'
         const [result] = await Database.delete(query, [modelA]);
 
-        if (result.affectedRows == 0) {
+        if (result.affectedRows == 0 && Model.debug) {
             console.warn("Cleared many to many relation, but didn't deleted any entries");
         }
     }

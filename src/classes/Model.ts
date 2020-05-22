@@ -304,7 +304,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         if (Object.keys(set).length == 0) {
-            console.warn("Tried to update model without any properties modified");
+            if (this.static.debug) console.warn("Tried to update model without any properties modified");
             return false;
         }
 
