@@ -6,25 +6,23 @@ import { ManyToOneRelation } from "./ManyToOneRelation";
 import { Model } from "./Model";
 import { OneToManyRelation } from "./OneToManyRelation";
 import { Encodeable, Data } from "@simonbackx/simple-encoding";
+import { EncodeContext } from "@simonbackx/simple-encoding/dist/src/classes/EncodeContext";
 
 describe("Model", () => {
     class TestDecoder implements Encodeable {
-        latestVersion = 3;
         id: number;
 
         constructor(id: number) {
             this.id = id;
         }
 
-        encode(version?: number) {
-            expect(version).toEqual(3);
+        encode(context: EncodeContext) {
             return {
                 id: this.id,
             };
         }
 
         static decode(data: Data): TestDecoder {
-            expect(data.version).toEqual(3);
             return new TestDecoder(data.field("id").number);
         }
     }
