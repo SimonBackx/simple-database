@@ -249,7 +249,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             params.push(limit);
         }
 
-        const [rows] = await Database.select(query, [params]);
+        const [rows] = await Database.select(query, params);
 
         // Read member + address from first row
         return this.fromRows(rows, this.table);
