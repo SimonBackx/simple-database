@@ -12,6 +12,7 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
     nullable?: boolean;
     decoder?: Decoder<any>;
     beforeSave?: (value?: any) => any;
+    beforeLoad?: (value?: any) => any;
     foreignKey?: ManyToOneRelation<Key, Value>;
 }) {
     return (target: any /* future typeof Model */, key: string) => {
@@ -31,6 +32,7 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
 
         const column = new Column(settings.type, key);
         column.beforeSave = settings.beforeSave;
+        column.beforeLoad = settings.beforeLoad;
 
         if (settings.decoder) {
             column.decoder = settings.decoder;

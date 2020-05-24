@@ -10,6 +10,9 @@ export class Column {
     decoder: Decoder<any> | undefined;
     beforeSave?: (value?: any) => any;
 
+    // Allow handling of new fields etc
+    beforeLoad?: (value?: any) => any;
+
     static jsonVersion: number = 0;
 
     constructor(type: ColumnType, name: string) {
@@ -27,6 +30,9 @@ export class Column {
 
     /// Convert from database to javascript
     from(data: any): any {
+        if (this.beforeLoad) {
+            data = this.beforeLoad(data);
+        }
         if (this.nullable && data === null) {
             return null;
         }
