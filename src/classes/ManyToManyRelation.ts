@@ -99,7 +99,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         if (whereLink) {
             for (const key in whereLink) {
                 if (whereLink.hasOwnProperty(key)) {
-                    str += ` AND ${namespaceB}.\`${key}\` = ?`;
+                    str += ` AND ${linkNamespace}.\`${key}\` = ?`;
                     params.push(whereLink[key]);
                 }
             }
