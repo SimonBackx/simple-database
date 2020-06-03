@@ -255,6 +255,24 @@ export class Model /* static implements RowInitiable<Model> */ {
         return this.fromRows(rows, this.table);
     }
 
+    /**
+     * Get multiple models by a simple where
+     */
+    static async all<T extends typeof Model>(this: T, limit?: number): Promise<InstanceType<T>[]> {
+        const params: any[] = [];
+        let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table}`;
+
+        if (limit) {
+            query += ` LIMIT ?`;
+            params.push(limit);
+        }
+
+        const [rows] = await Database.select(query, params);
+
+        // Read member + address from first row
+        return this.fromRows(rows, this.table);
+    }
+
     async save(): Promise<boolean> {
         if (!this.static.table) {
             throw new Error("Table name not set");
