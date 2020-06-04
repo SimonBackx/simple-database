@@ -238,8 +238,54 @@ export class Model /* static implements RowInitiable<Model> */ {
         const params: any[] = [];
         for (const key in where) {
             if (where.hasOwnProperty(key)) {
-                whereQuery.push(`\`${this.table}\`.\`${key}\` = ?`);
-                params.push(where[key]);
+                const value = where[key];
+                if (typeof value === "object" && value !== null) {
+                    switch (value.sign) {
+                        case "LIKE":
+                            whereQuery.push(`\`${this.table}\`.\`${key}\` LIKE ?`);
+                            params.push(value.value);
+                            break;
+
+                        case "!=":
+                            if (value.value === null) {
+                                whereQuery.push(`\`${this.table}\`.\`${key}\` IS NOT NULL`);
+                            } else {
+                                whereQuery.push(`\`${this.table}\`.\`${key}\` != ?`);
+                                params.push(value.value);
+                            }
+                            break;
+
+                        case "<":
+                            whereQuery.push(`\`${this.table}\`.\`${key}\` < ?`);
+                            params.push(value.value);
+                            break;
+
+                        case ">":
+                            whereQuery.push(`\`${this.table}\`.\`${key}\` > ?`);
+                            params.push(value.value);
+                            break;
+
+                        case "<=":
+                            whereQuery.push(`\`${this.table}\`.\`${key}\` <= ?`);
+                            params.push(value.value);
+                            break;
+
+                        case ">=":
+                            whereQuery.push(`\`${this.table}\`.\`${key}\` <= ?`);
+                            params.push(value.value);
+                            break;
+
+                        default:
+                            throw new Error("Sign not supported.");
+                    }
+                } else {
+                    if (value === null) {
+                        whereQuery.push(`\`${this.table}\`.\`${key}\` IS NULL`);
+                    } else {
+                        whereQuery.push(`\`${this.table}\`.\`${key}\` = ?`);
+                        params.push(value);
+                    }
+                }
             }
         }
         let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ` + whereQuery.join(" AND ");
