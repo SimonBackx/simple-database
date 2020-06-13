@@ -6,6 +6,20 @@ The idea is to provide a type safe ORM. The problem in most ORMs is that you nev
 
 Again, simplicity also means a bit more boilerplate code. But that will make the code only more customizeable and maintainable in the future.
 
+## Installation
+
+### Yarn
+
+```
+yarn add @simonbackx/simple-database
+```
+
+### NPM
+
+```
+npm install @simonbackx/simple-database
+```
+
 ## Example
 
 ```ts
