@@ -229,7 +229,7 @@ export class Model /* static implements RowInitiable<Model> */ {
     /**
      * Get multiple models by a simple where
      */
-    static async where<T extends typeof Model>(this: T, where: object, limit?: number): Promise<InstanceType<T>[]> {
+    static async where<T extends typeof Model>(this: T, where: object, limit?: number, sort?: string): Promise<InstanceType<T>[]> {
         if (Object.keys(where).length == 0) {
             return [];
         }
@@ -289,6 +289,10 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
         let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ` + whereQuery.join(" AND ");
+
+        if (sort) {
+            query += ` ORDER BY `+sort+"";
+        }
 
         if (limit) {
             query += ` LIMIT ?`;
