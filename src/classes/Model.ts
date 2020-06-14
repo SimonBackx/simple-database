@@ -363,7 +363,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 throw new Error("Model " + this.constructor.name + " was loaded from the Database, but didn't select the ID. Saving not possible.");
             }
         } else {
-            if (!this.existsInDatabase && this.static.primary.type == "integer") {
+            if (!this.existsInDatabase && this.static.primary.type == "integer" && this.static.primary.name == "id") {
                 throw new Error(
                     `PrimaryKey was set programmatically without fetching the model ${this.constructor.name} from the database. This is not allowed for integer primary keys.`
                 );
