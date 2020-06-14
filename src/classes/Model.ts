@@ -378,7 +378,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 this[column.name] = column.beforeSave.call(this, this[column.name]);
             }
 
-            if (column.primary && column.type == "integer") {
+            if (column.primary && column.type == "integer" && this.static.primary.name == "id") {
                 // Auto increment: not allowed to set
                 continue;
             }
