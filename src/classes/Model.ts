@@ -241,6 +241,11 @@ export class Model /* static implements RowInitiable<Model> */ {
                 const value = where[key];
                 if (typeof value === "object" && value !== null) {
                     switch (value.sign) {
+                        case "MATCH":
+                            whereQuery.push(`MATCH(\`${this.table}\`.\`${key}\`) AGAINST(?)`);
+                            params.push(value.value);
+                            break;
+
                         case "LIKE":
                             whereQuery.push(`\`${this.table}\`.\`${key}\` LIKE ?`);
                             params.push(value.value);
@@ -291,7 +296,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ` + whereQuery.join(" AND ");
 
         if (sort) {
-            query += ` ORDER BY `+sort+"";
+            query += ` ORDER BY ` + sort + "";
         }
 
         if (limit) {
