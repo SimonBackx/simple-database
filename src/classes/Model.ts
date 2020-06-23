@@ -241,10 +241,22 @@ export class Model /* static implements RowInitiable<Model> */ {
                 const value = where[key];
                 if (typeof value === "object" && value !== null) {
                     switch (value.sign) {
-                        case "MATCH":
-                            whereQuery.push(`MATCH(\`${this.table}\`.\`${key}\`) AGAINST(?)`);
+                        case "MATCH": {
+                            let suffix = "";
+                            if (value.mode) {
+                                switch (value.mode) {
+                                    case "BOOLEAN":
+                                        suffix = " IN BOOLEAN MODE";
+                                        break;
+                                    default:
+                                        throw new Error("Unknown match mode " + value.mode)
+
+                                }
+                            }
+                            whereQuery.push(`MATCH(\`${this.table}\`.\`${key}\`) AGAINST(?${suffix})`);
                             params.push(value.value);
                             break;
+                        }
 
                         case "LIKE":
                             whereQuery.push(`\`${this.table}\`.\`${key}\` LIKE ?`);
