@@ -144,7 +144,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     /// Whether this relation is loaded
-    isLoaded(model: A): model is A & Record<Key, B[]> {
+    isLoaded<T extends A>(model: T): model is T & Record<Key, B[]> {
         // Also not loaded if null, since it should be an empty array or an array if it is loaded
         return Array.isArray((model as any)[this.modelKey]);
     }

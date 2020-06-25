@@ -35,7 +35,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
     }
 
     /// Whether this relation is loaded
-    isLoaded(model: A): model is A & Record<Key, B[]> {
+    isLoaded<T extends A>(model: T): model is T & Record<Key, B[]> {
         // Also not loaded if null, since it should be an empty array or an array if it is loaded
         return Array.isArray((model as any)[this.modelKey]);
     }
@@ -61,7 +61,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
     }
 
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A, sorted: boolean = true, where?: object): Promise<B[]> {
+    async load(modelA: A, sorted = true, where?: object): Promise<B[]> {
         const namespaceB = "B";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.modelB.table} as ${namespaceB}\n`;
         str += `WHERE ${namespaceB}.${this.foreignKey} = ?`;
