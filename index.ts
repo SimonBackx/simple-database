@@ -6,3 +6,4 @@ export * from "./src/classes/OneToManyRelation";
 export * from "./src/classes/Migration";
 export * from "./src/classes/Model";
 export * from "./src/decorators/Column";
+export * from "./src/classes/Column"
