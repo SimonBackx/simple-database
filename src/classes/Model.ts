@@ -115,7 +115,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Set a many relation. Note that this doesn't save the relation! You'll need to use the methods of the relation instead
      */
     setManyRelation<Key extends keyof any, Value extends Model>(
-        relation: ManyToManyRelation<Key, any, Value> | OneToManyRelation<Key, any, Value>,
+        relation: ManyToManyRelation<Key, any, Value, any> | OneToManyRelation<Key, any, Value>,
         value: Value[]
     ): this & Record<Key, Value[]> {
         value.forEach((v) => {
@@ -133,7 +133,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * If the row's primary key is null, undefined is returned
      */
     static fromRow<T extends typeof Model>(this: T, row: any): InstanceType<T> | undefined {
-        if (row[this.primary.name] === null || row[this.primary.name] === undefined) {
+        if (row === undefined || (this.primary && (row[this.primary.name] === null || row[this.primary.name] === undefined))) {
             return undefined;
         }
 

@@ -1,9 +1,10 @@
 import { Database } from "./Database";
 import { Model } from "./Model";
 
-export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model> {
+export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model, Link extends Model> {
     modelA: { new (): A } & typeof Model;
     modelB: { new (): B } & typeof Model;
+    modelLink?: { new(): Link } & typeof Model;
 
     /**
      * E.g. parents
@@ -20,6 +21,9 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      * E.g. _models_parents
      */
     get linkTable(): string {
+        if (this.modelLink) {
+            return this.modelLink.table
+        }
         return "_" + [this.modelA.table, this.modelB.table].sort().join("_");
     }
 
@@ -47,10 +51,11 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         );
     }
 
-    constructor(modelA: { new (): A } & typeof Model, modelB: { new (): B } & typeof Model, modelKey: Key) {
+    constructor(modelA: { new(): A } & typeof Model, modelB: { new(): B } & typeof Model, modelKey: Key, modelLink?: { new(): Link } & typeof Model) {
         this.modelA = modelA;
         this.modelB = modelB;
         this.modelKey = modelKey;
+        this.modelLink = modelLink
     }
 
     setSort(key: string, order: "ASC" | "DESC" = "ASC"): this {
@@ -80,10 +85,16 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A, sorted: boolean = true, where?: object, whereLink?: object): Promise<B[]> {
+    async load(modelA: A, sorted = true, where?: object, whereLink?: object): Promise<(B & { _link: Link})[]> {
         const namespaceB = "B";
         const linkNamespace = "A_B";
-        let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.linkTable} as ${linkNamespace}\n`;
+        let select = this.modelB.getDefaultSelect(namespaceB)
+
+        if (this.modelLink) {
+            select += ", " + this.modelLink.getDefaultSelect(linkNamespace)
+        }
+
+        let str = `SELECT ${select} FROM ${this.linkTable} as ${linkNamespace}\n`;
         str += `JOIN ${this.modelB.table} as ${namespaceB} on ${linkNamespace}.${this.linkKeyB} = ${namespaceB}.${this.modelB.primary.name}\n`;
         str += `WHERE ${linkNamespace}.${this.linkKeyA} = ?`;
 
@@ -109,7 +120,25 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
 
         const [rows] = await Database.select(str, params);
-        const modelsB = this.modelB.fromRows(rows, namespaceB) as B[];
+        const modelsB = this.modelB.fromRows(rows, namespaceB) as (B & { _link: Link })[];
+
+        // Also load link table if possible
+        if (this.modelLink) {
+            for (const row of rows) {
+                const model = this.modelLink.fromRow(row[linkNamespace]) as Link;
+
+                // Fin modelB
+                const modelB = modelsB.find((m) => m.getPrimaryKey() == row[linkNamespace][this.linkKeyB])
+
+                if (!modelB) {
+                    throw new Error("Unexpected linking")
+                }
+
+                // Save link
+                modelB._link = model
+            }
+        }   
+
         modelA.setManyRelation(this, modelsB);
         return modelsB;
     }
@@ -121,7 +150,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
     }
 
     async setLinkTable(modelA: A, modelB: B, linkTableValues: { [key: string]: any }) {
-        let str = `UPDATE ${this.linkTable} SET ? WHERE ${Database.escapeId(this.linkKeyA)} = ? AND ${Database.escapeId(this.linkKeyB)} = ?`;
+        const str = `UPDATE ${this.linkTable} SET ? WHERE ${Database.escapeId(this.linkKeyA)} = ? AND ${Database.escapeId(this.linkKeyB)} = ?`;
 
         const [result] = await Database.update(str, [linkTableValues, modelA.getPrimaryKey(), modelB.getPrimaryKey()]);
         if (result.changedRows != 1) {
@@ -141,7 +170,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         if (linkTableValues !== undefined) {
             const linkTableKeys: string[] = Object.keys(linkTableValues);
 
-            for (var property in linkTableValues) {
+            for (const property in linkTableValues) {
                 if (linkTableValues.hasOwnProperty(property)) {
                     if (linkTableValues[property].length != modelsB.length) {
                         throw new Error(

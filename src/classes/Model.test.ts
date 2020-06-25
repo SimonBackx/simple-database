@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { Data,Encodeable } from "@simonbackx/simple-encoding";
+import { EncodeContext } from "@simonbackx/simple-encoding/dist/src/classes/EncodeContext";
+
 import { column } from "../decorators/Column";
 import { Database } from "./Database";
 import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
 import { Model } from "./Model";
 import { OneToManyRelation } from "./OneToManyRelation";
-import { Encodeable, Data } from "@simonbackx/simple-encoding";
-import { EncodeContext } from "@simonbackx/simple-encoding/dist/src/classes/EncodeContext";
 
 describe("Model", () => {
     class TestDecoder implements Encodeable {
@@ -26,6 +27,20 @@ describe("Model", () => {
             return new TestDecoder(data.field("id").number);
         }
     }
+
+    class TestModelFriend extends Model {
+        static table = "_testModels_testModels"
+
+        @column({ type: "integer" })
+        testModelsIdA: number
+
+        @column({ type: "integer" })
+        testModelsIdB: number
+
+        @column({ type: "integer" })
+        priority: number;
+    }
+    
     // Create a new class
     class TestModel extends Model {
         static table = "testModels";
@@ -65,7 +80,7 @@ describe("Model", () => {
         parentId: number | null = null; // null = no address
 
         static parent = new ManyToOneRelation(TestModel, "parent");
-        static friends = new ManyToManyRelation(TestModel, TestModel, "friends");
+        static friends = new ManyToManyRelation(TestModel, TestModel, "friends", TestModelFriend);
         static sortedFriends = new ManyToManyRelation(TestModel, TestModel, "sortedFriends").setSort("priority");
         static children = new OneToManyRelation(TestModel, TestModel, "children", "parentId");
         static sortedChildren = new OneToManyRelation(TestModel, TestModel, "sortedChildren", "parentId").setSort("count");
@@ -377,7 +392,7 @@ describe("Model", () => {
 
         expect(await meWithFriends.save()).toEqual(true);
 
-        await TestModel.friends.link(meWithFriends, [friend1, friend2]);
+        await TestModel.friends.link(meWithFriends, [friend1, friend2], {priority: [0, 0]});
         if (TestModel.friends.isLoaded(meWithFriends)) {
             expect(meWithFriends.friends).toHaveLength(2);
             expect(meWithFriends.friends[0].id).toEqual(friend1.id);
@@ -523,7 +538,7 @@ describe("Model", () => {
 
     test("Link a not loaded many to many relation", async () => {
         // Now unlink one
-        await TestModel.friends.link(meWithoutFriends, [friend3, friend2, friend1]);
+        await TestModel.friends.link(meWithoutFriends, [friend3, friend2, friend1], {priority: [30, 20, 10]});
         expect(TestModel.friends.isLoaded(meWithoutFriends)).toEqual(false);
 
         const [rows] = await Database.select("SELECT * from testModels " + TestModel.friends.joinQuery("testModels", "friends") + " where testModels.id = ?", [
@@ -572,6 +587,22 @@ describe("Model", () => {
         expect(TestModel.friends.isLoaded(selected)).toEqual(true);
         expect(selected.friends).toEqual(friends);
         expect(friends.map((f) => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
+
+        expect(friends[0]._link).toMatchObject({
+            priority: friends[0].id == friend2.id ? 20 : 10,
+            testModelsIdA: meWithFriends.id,
+            testModelsIdB: friends[0].id
+        })
+
+        expect(friends[1]._link).toMatchObject({
+            priority: friends[1].id == friend2.id ? 20 : 10,
+            testModelsIdA: meWithFriends.id,
+            testModelsIdB: friends[1].id
+        })
+
+        const sortedFriends = await TestModel.sortedFriends.load(selected)
+        expect(TestModel.sortedFriends.isLoaded(selected)).toEqual(true);
+        expect(sortedFriends.map((f) => f.id)).toEqual([friend1.id, friend2.id]);
     });
 
     test("Clear a not loaded many to many relation", async () => {
