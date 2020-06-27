@@ -327,7 +327,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      */
     static async where<T extends typeof Model>(this: T, where: SQLWhereQuery, extra?: { 
         limit?: number; 
-        sort?: string | { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"}[];
+        sort?: (string | { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"})[];
     }): Promise<InstanceType<T>[]> {
         if (Object.keys(where).length == 0) {
             return [];
