@@ -327,7 +327,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      */
     static async where<T extends typeof Model>(this: T, where: SQLWhereQuery, extra?: { 
         limit?: number; 
-        sort?: { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"}[];
+        sort?: string | { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"}[];
     }): Promise<InstanceType<T>[]> {
         if (Object.keys(where).length == 0) {
             return [];
@@ -340,7 +340,9 @@ export class Model /* static implements RowInitiable<Model> */ {
             const sortQuery: string[] = []
 
             for (const item of extra.sort) {
-                if (typeof item.column == "string") {
+                if (typeof item == "string") {
+                    sortQuery.push(Database.escapeId(item) + " ASC")
+                } else if (typeof item.column == "string") {
                     sortQuery.push(Database.escapeId(item.column)+" "+(item.direction ?? "ASC"))
                 } else {
                     // Repeat use of a where query in the sorting (needed when fulltext searching and need to sort on the score, because limit won't work without this for an unknown reason)
