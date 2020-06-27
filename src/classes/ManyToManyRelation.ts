@@ -1,7 +1,7 @@
 import { Database } from "./Database";
 import { Model } from "./Model";
 
-export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model, Link extends Model> {
+export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model, Link extends Model | undefined = undefined> {
     modelA: { new (): A } & typeof Model;
     modelB: { new (): B } & typeof Model;
     modelLink?: { new(): Link } & typeof Model;
@@ -159,7 +159,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
     }
 
-    async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<number> {
+    async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] } | Link[]): Promise<number> {
         if (modelsB.length == 0) {
             return 0;
         }
@@ -202,7 +202,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         return result.affectedRows;
     }
 
-    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
+    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] } | Link[] ): Promise<void> {
         const modelAId = modelA.getPrimaryKey();
         if (!modelAId) {
             throw new Error("Cannot link if model is not saved yet");

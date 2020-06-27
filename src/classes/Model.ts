@@ -4,6 +4,9 @@ import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
 import { OneToManyRelation } from "./OneToManyRelation";
 
+type SQLWhere = { sign: string; value: string | number | null; mode?: string }
+type SQLWhereQuery = { [key: string]: string | number | null | SQLWhere }
+
 export class Model /* static implements RowInitiable<Model> */ {
     static primary: Column;
 
@@ -226,75 +229,85 @@ export class Model /* static implements RowInitiable<Model> */ {
         return this.fromRows(rows, this.table);
     }
 
-    /**
-     * Get multiple models by a simple where
-     */
-    static async where<T extends typeof Model>(this: T, where: object, limit?: number, sort?: string): Promise<InstanceType<T>[]> {
-        if (Object.keys(where).length == 0) {
-            return [];
+    static buildWhereOperator(key: string, value: SQLWhere): [string, any[]] {
+        let whereQuery: string
+        const params: any[] = [];
+
+        switch (value.sign) {
+            case "MATCH": {
+                let suffix = "";
+                if (value.mode) {
+                    switch (value.mode) {
+                        case "BOOLEAN":
+                            suffix = " IN BOOLEAN MODE";
+                            break;
+                        default:
+                            throw new Error("Unknown match mode " + value.mode)
+
+                    }
+                }
+                whereQuery = (`MATCH(\`${this.table}\`.\`${key}\`) AGAINST(?${suffix})`);
+                params.push(value.value);
+                break;
+            }
+
+            case "LIKE":
+                whereQuery = (`\`${this.table}\`.\`${key}\` LIKE ?`);
+                params.push(value.value);
+                break;
+
+            case "!=":
+                if (value.value === null) {
+                    whereQuery = (`\`${this.table}\`.\`${key}\` IS NOT NULL`);
+                } else {
+                    whereQuery = (`\`${this.table}\`.\`${key}\` != ?`);
+                    params.push(value.value);
+                }
+                break;
+
+            case "<":
+                whereQuery = (`\`${this.table}\`.\`${key}\` < ?`);
+                params.push(value.value);
+                break;
+
+            case ">":
+                whereQuery = (`\`${this.table}\`.\`${key}\` > ?`);
+                params.push(value.value);
+                break;
+
+            case "<=":
+                whereQuery = (`\`${this.table}\`.\`${key}\` <= ?`);
+                params.push(value.value);
+                break;
+
+            case ">=":
+                whereQuery = (`\`${this.table}\`.\`${key}\` <= ?`);
+                params.push(value.value);
+                break;
+
+            case "=":
+                whereQuery = (`\`${this.table}\`.\`${key}\` = ?`);
+                params.push(value.value);
+                break;
+
+            default:
+                throw new Error("Sign not supported.");
         }
 
+        return [whereQuery, params]
+    }
+
+    static buildWhereQuery(where: SQLWhereQuery): [string, any[]] {
         const whereQuery: string[] = [];
         const params: any[] = [];
+
         for (const key in where) {
             if (where.hasOwnProperty(key)) {
                 const value = where[key];
                 if (typeof value === "object" && value !== null) {
-                    switch (value.sign) {
-                        case "MATCH": {
-                            let suffix = "";
-                            if (value.mode) {
-                                switch (value.mode) {
-                                    case "BOOLEAN":
-                                        suffix = " IN BOOLEAN MODE";
-                                        break;
-                                    default:
-                                        throw new Error("Unknown match mode " + value.mode)
-
-                                }
-                            }
-                            whereQuery.push(`MATCH(\`${this.table}\`.\`${key}\`) AGAINST(?${suffix})`);
-                            params.push(value.value);
-                            break;
-                        }
-
-                        case "LIKE":
-                            whereQuery.push(`\`${this.table}\`.\`${key}\` LIKE ?`);
-                            params.push(value.value);
-                            break;
-
-                        case "!=":
-                            if (value.value === null) {
-                                whereQuery.push(`\`${this.table}\`.\`${key}\` IS NOT NULL`);
-                            } else {
-                                whereQuery.push(`\`${this.table}\`.\`${key}\` != ?`);
-                                params.push(value.value);
-                            }
-                            break;
-
-                        case "<":
-                            whereQuery.push(`\`${this.table}\`.\`${key}\` < ?`);
-                            params.push(value.value);
-                            break;
-
-                        case ">":
-                            whereQuery.push(`\`${this.table}\`.\`${key}\` > ?`);
-                            params.push(value.value);
-                            break;
-
-                        case "<=":
-                            whereQuery.push(`\`${this.table}\`.\`${key}\` <= ?`);
-                            params.push(value.value);
-                            break;
-
-                        case ">=":
-                            whereQuery.push(`\`${this.table}\`.\`${key}\` <= ?`);
-                            params.push(value.value);
-                            break;
-
-                        default:
-                            throw new Error("Sign not supported.");
-                    }
+                    const [w, p] = this.buildWhereOperator(key, value)
+                    whereQuery.push(w)
+                    params.push(...p)
                 } else {
                     if (value === null) {
                         whereQuery.push(`\`${this.table}\`.\`${key}\` IS NULL`);
@@ -305,15 +318,45 @@ export class Model /* static implements RowInitiable<Model> */ {
                 }
             }
         }
-        let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ` + whereQuery.join(" AND ");
 
-        if (sort) {
-            query += ` ORDER BY ` + sort + "";
+        return [whereQuery.join(" AND "), params];
+    }
+
+    /**
+     * Get multiple models by a simple where
+     */
+    static async where<T extends typeof Model>(this: T, where: SQLWhereQuery, extra?: { 
+        limit?: number; 
+        sort?: { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"}[];
+    }): Promise<InstanceType<T>[]> {
+        if (Object.keys(where).length == 0) {
+            return [];
         }
 
-        if (limit) {
+        const [whereQuery, params] = this.buildWhereQuery(where)
+        let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ` + whereQuery;
+
+        if (extra && extra.sort !== undefined) {
+            const sortQuery: string[] = []
+
+            for (const item of extra.sort) {
+                if (typeof item.column == "string") {
+                    sortQuery.push(Database.escapeId(item.column)+" "+(item.direction ?? "ASC"))
+                } else {
+                    // Repeat use of a where query in the sorting (needed when fulltext searching and need to sort on the score, because limit won't work without this for an unknown reason)
+                    const [w, p] = this.buildWhereQuery(item.column)
+                    
+                    sortQuery.push("("+ w + ") " + (item.direction ?? "ASC"))
+                    params.push(...p)
+                }
+            }
+
+            query += ` ORDER BY ` + sortQuery.join(", ");
+        }
+
+        if (extra && extra.limit !== undefined) {
             query += ` LIMIT ?`;
-            params.push(limit);
+            params.push(extra.limit);
         }
 
         const [rows] = await Database.select(query, params);
@@ -338,6 +381,39 @@ export class Model /* static implements RowInitiable<Model> */ {
 
         // Read member + address from first row
         return this.fromRows(rows, this.table);
+    }
+
+    /**
+     * Return an object of all the properties that are changed and their database representation
+     */
+    getChangedDatabaseProperties(): object {
+        const set = {};
+        
+        for (const column of this.static.columns.values()) {
+            // Run beforeSave
+            if (column.beforeSave) {
+                this[column.name] = column.beforeSave.call(this, this[column.name]);
+            }
+
+            if (column.primary && column.type == "integer" && this.static.primary.name == "id") {
+                // Auto increment: not allowed to set
+                continue;
+            }
+
+            if (!this.existsInDatabase && this[column.name] === undefined) {
+                // In the future we might make some columns optional because they have a default value in the database.
+                // But that could cause inconsitent state, so it would be better to generate default values in code.
+                throw new Error("Tried to create model " + this.constructor.name + " with undefined property " + column.name);
+            }
+
+            if (this[column.name] !== undefined && column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
+                set[column.name] = column.to(this[column.name]);
+            } else {
+                // Check JSON fields. The reference could have stayed the same, but the value might have changed.
+            }
+        }
+
+        return set;
     }
 
     async save(): Promise<boolean> {
@@ -391,31 +467,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        const set = {};
-
-        for (const column of this.static.columns.values()) {
-            // Run beforeSave
-            if (column.beforeSave) {
-                this[column.name] = column.beforeSave.call(this, this[column.name]);
-            }
-
-            if (column.primary && column.type == "integer" && this.static.primary.name == "id") {
-                // Auto increment: not allowed to set
-                continue;
-            }
-
-            if (!this.existsInDatabase && this[column.name] === undefined) {
-                // In the future we might make some columns optional because they have a default value in the database.
-                // But that could cause inconsitent state, so it would be better to generate default values in code.
-                throw new Error("Tried to create model " + this.constructor.name + " with undefined property " + column.name);
-            }
-
-            if (this[column.name] !== undefined && column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
-                set[column.name] = column.to(this[column.name]);
-            } else {
-                // Check JSON fields. The reference could have stayed the same, but the value might have changed.
-            }
-        }
+        const set = this.getChangedDatabaseProperties();
 
         if (Object.keys(set).length == 0) {
             if (this.static.debug) console.warn("Tried to update model without any properties modified");

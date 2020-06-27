@@ -75,9 +75,12 @@ export const Database = {
         return process.hrtime();
     },
 
-    logQuery(_q, _hrstart: [number, number]) {
-        //const hrend = process.hrtime(hrstart);
-        //console.warn(q.sql.replace(/\n+ +/g, "\n"), "started at " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms");
+    logQuery(q, hrstart: [number, number]) {
+        if (debug) {
+            const hrend = process.hrtime(hrstart);
+            console.warn(q.sql.replace(/\n+ +/g, "\n"), "started at " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms");
+        }
+        
     },
 
     finishQuery(_q, _hrstart: [number, number]) {

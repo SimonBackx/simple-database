@@ -15,7 +15,8 @@ module.exports = {
     rules: {
         "no-console": "off",
         "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
-        "simple-import-sort/sort": "warn"
+        "simple-import-sort/sort": "warn",
+        "no-prototype-builtins": "off",
     },
     overrides: [
         {
@@ -37,6 +38,7 @@ module.exports = {
                 "no-console": "off",
                 "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
                 "simple-import-sort/sort": "warn",
+                "no-prototype-builtins": "off",
                 "@typescript-eslint/explicit-function-return-type": "off",
                 "@typescript-eslint/no-explicit-any": "off",
                 "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
