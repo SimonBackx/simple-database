@@ -85,7 +85,7 @@ export class Migration {
             // Check if SQL or TypeScript
             const migration = await this.getMigration(file)
             if (!migration) {
-                throw new Error("Invalid migration at " + file)
+                continue;
             }
 
             process.stdout.write(colors.bold("Migration " + name));
