@@ -7,6 +7,14 @@ import { OneToManyRelation } from "./OneToManyRelation";
 type SQLWhere = { sign: string; value: string | number | null; mode?: string }
 type SQLWhereQuery = { [key: string]: string | number | null | SQLWhere }
 
+
+type KeysOfWithout<Base, Key extends keyof Base> = Exclude<keyof Base, Key>;
+
+type ExcludeKey<Base, Key extends keyof Base> = {
+    [P in KeysOfWithout<Base, Key>]: Base[P];
+};
+
+
 export class Model /* static implements RowInitiable<Model> */ {
     static primary: Column;
 

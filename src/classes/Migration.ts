@@ -120,6 +120,16 @@ export class Migration {
             });
 
         } else {
+            if (file.includes(".test.")) {
+                return;
+            }
+            if (file.endsWith(".d.ts")) {
+                return;
+            }
+            if (!file.endsWith(".ts") && !file.endsWith(".js")) {
+                return;
+            }
+
             const imported = await import(file);
             migration = imported.default;
         }
