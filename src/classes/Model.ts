@@ -210,7 +210,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * @param id primary key
      */
     static async getByID<T extends typeof Model>(this: T, id: number | string): Promise<InstanceType<T> | undefined> {
-        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} = ? LIMIT 1`, [id]);
+        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE \`${this.primary.name}\` = ? LIMIT 1`, [id]);
 
         if (rows.length == 0) {
             return undefined;
@@ -228,7 +228,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         if (ids.length == 0) {
             return [];
         }
-        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ${this.primary.name} IN (?) LIMIT ?`, [
+        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE \`${this.primary.name}\` IN (?) LIMIT ?`, [
             ids,
             ids.length,
         ]);
@@ -342,7 +342,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         const [whereQuery, params] = this.buildWhereQuery(where)
-        let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table} WHERE ` + whereQuery;
+        let query = `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE ` + whereQuery;
 
         if (extra && extra.sort !== undefined) {
             const sortQuery: string[] = []
