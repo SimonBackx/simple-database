@@ -299,7 +299,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 break;
 
             case "IN":
-                whereQuery = (`\`${this.table}\`.\`${key}\` IN ?`);
+                whereQuery = (`\`${this.table}\`.\`${key}\` IN (?)`);
                 if (!Array.isArray(value.value)) {
                     throw new Error("Expected an array for IN where query")
                 }
