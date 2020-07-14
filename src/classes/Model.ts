@@ -4,7 +4,7 @@ import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
 import { OneToManyRelation } from "./OneToManyRelation";
 
-type SQLWhere = { sign: string; value: string | number | null; mode?: string }
+type SQLWhere = { sign: string; value: string | number | null | string[] | number[]; mode?: string }
 type SQLWhereQuery = { [key: string]: string | number | null | SQLWhere }
 
 
@@ -295,6 +295,14 @@ export class Model /* static implements RowInitiable<Model> */ {
 
             case "=":
                 whereQuery = (`\`${this.table}\`.\`${key}\` = ?`);
+                params.push(value.value);
+                break;
+
+            case "IN":
+                whereQuery = (`\`${this.table}\`.\`${key}\` IN ?`);
+                if (!Array.isArray(value.value)) {
+                    throw new Error("Expected an array for IN where query")
+                }
                 params.push(value.value);
                 break;
 
