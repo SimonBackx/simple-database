@@ -16,7 +16,7 @@ const pool = mysql.createPool({
     charset: "utf8mb4",
 });
 
-const debug = false;
+let debug = false;
 
 if (debug) {
     pool.on("acquire", function (connection) {
@@ -38,6 +38,10 @@ if (debug) {
 
 /// Database is a wrapper arround mysql, because we want to use promises + types
 export const Database = {
+    setDebug(enabled = true) {
+        debug = enabled;
+    },
+
     async getConnection(): Promise<mysql.PoolConnection> {
         // Todo: use the settings here to provide a good connection pool
         return new Promise((resolve, reject) => {
