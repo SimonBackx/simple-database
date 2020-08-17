@@ -500,7 +500,7 @@ export class Model /* static implements RowInitiable<Model> */ {
 
             const [result] = await Database.insert("INSERT INTO `" + this.static.table + "` SET ?", [set]);
 
-            if (this.static.primary.type == "integer") {
+            if (this.static.primary.type == "integer" && this.static.primary.name == "id") {
                 // Auto increment value
                 this[this.static.primary.name] = result.insertId;
                 if (this.static.debug) console.log(`New id = ${this[this.static.primary.name]}`);
@@ -538,7 +538,9 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         this.existsInDatabase = false;
-        this.eraseProperty(this.static.primary.name);
+        if (this.static.primary.type == "integer" && this.static.primary.name == "id") {
+            this.eraseProperty(this.static.primary.name);
+        }
         this.savedProperties.clear();
     }
 }
