@@ -11,9 +11,13 @@ const pool = mysql.createPool({
     password: process.env.DB_PASS ?? "root",
     database: process.env.DB_DATABASE,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT ?? "10"),
     queueLimit: 0,
     charset: "utf8mb4",
+    ssl: (process.env.DB_USE_SSL ?? false) ? {
+        ca: process.env.DB_CA,
+        rejectUnauthorized: process.env.DB_CA ? true : false,
+    } : undefined
 });
 
 let debug = false;
