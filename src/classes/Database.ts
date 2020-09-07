@@ -1,3 +1,4 @@
+import fs from "fs";
 import mysql from "mysql";
 
 if (!process.env.DB_DATABASE) {
@@ -15,7 +16,7 @@ const pool = mysql.createPool({
     queueLimit: 0,
     charset: "utf8mb4",
     ssl: (process.env.DB_USE_SSL ?? false) ? {
-        ca: process.env.DB_CA,
+        ca: process.env.DB_CA ? fs.readFileSync(process.env.DB_CA) : undefined,
         rejectUnauthorized: process.env.DB_CA ? true : false,
     } : undefined
 });
