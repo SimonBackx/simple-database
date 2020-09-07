@@ -2,7 +2,7 @@
     "name": "@simonbackx/simple-database",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "version": "1.11.6",
+    "version": "1.11.7",
     "scripts": {
         "test": "jest --setupFiles dotenv/config",
         "build": "tsc -p . --declaration && cp -a ./src/migrations ./dist/src/migrations",
