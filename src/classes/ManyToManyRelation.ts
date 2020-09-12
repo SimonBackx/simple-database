@@ -58,6 +58,10 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         this.modelLink = modelLink
     }
 
+    reverse<Key2 extends keyof any>(modelKey: Key2): ManyToManyRelation<Key2, B, A, Link> {
+        return new ManyToManyRelation<Key2, B, A, Link>(this.modelB, this.modelA, modelKey, this.modelLink)
+    }
+
     setSort(key: string, order: "ASC" | "DESC" = "ASC"): this {
         this.sortKey = key;
         this.sortOrder = order;
