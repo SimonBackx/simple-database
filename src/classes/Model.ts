@@ -289,7 +289,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 break;
 
             case ">=":
-                whereQuery = (`\`${this.table}\`.\`${key}\` <= ?`);
+                whereQuery = (`\`${this.table}\`.\`${key}\` >= ?`);
                 params.push(value.value);
                 break;
 
