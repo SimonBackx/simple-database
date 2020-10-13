@@ -13,7 +13,7 @@ export class Column {
     // Allow handling of new fields etc
     beforeLoad?: (value?: any) => any;
 
-    static jsonVersion: number = 0;
+    static jsonVersion = 0;
 
     constructor(type: ColumnType, name: string) {
         this.type = type;
@@ -152,9 +152,10 @@ export class Column {
                             return v;
                         });
                     } else {
-                        console.warn(
+                        // Some data has a decoder, but is not encodeable (since it is equal)
+                        /*console.warn(
                             "A non encodeable value has been set for " + this.name + " this is not recommended and might become deprecated in the future."
-                        );
+                        );*/
                     }
                 }
                 return JSON.stringify({
