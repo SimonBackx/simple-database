@@ -4,7 +4,7 @@ import { Column } from "../classes/Column";
 import { ManyToOneRelation } from "../classes/ManyToOneRelation";
 import { Model } from "../classes/Model";
 
-export type ColumnType = "integer" | "string" | "date" | "datetime" | "boolean" | "json";
+export type ColumnType = "integer" | "number" | "string" | "date" | "datetime" | "boolean" | "json";
 
 export function column<Key extends keyof any, Value extends Model>(settings: {
     type: ColumnType;
