@@ -47,6 +47,13 @@ export class Column {
                 }
                 return data;
 
+            case "number":
+                // Mapped correctly by MySQL
+                if (Number.isNaN(data)) {
+                    throw new Error("Expected number");
+                }
+                return data;
+
             case "string":
                 return data;
 
