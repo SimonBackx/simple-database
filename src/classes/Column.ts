@@ -119,6 +119,10 @@ export class Column {
                 // Mapped correctly by MySQL
                 return data;
 
+            case "number":
+                // Mapped correctly by node MySQL
+                return data;
+
             case "string":
                 return data;
 
