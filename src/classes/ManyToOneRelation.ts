@@ -35,7 +35,7 @@ export class ManyToOneRelation<Key extends keyof any, M extends Model> {
     }
 
     /// Load the relation of a list of models
-    async load(modelsA: Model[]) {
+    async load<A extends Model>(modelsA: A[]): Promise<(A & Record<Key, M>)[]> {
         let str = `SELECT ${this.model.getDefaultSelect()} FROM ${this.model.table}\n`;
         str += `WHERE ${this.model.primary.name} IN (?)`;
        
@@ -43,8 +43,12 @@ export class ManyToOneRelation<Key extends keyof any, M extends Model> {
         const modelsB = this.model.fromRows(rows, this.model.table) as M[];
        
         for (const model of modelsA) {
-            model.setOptionalRelation(this, modelsB.find(m => m.getPrimaryKey() === model[this.foreignKey]) ?? null)
+            const found = modelsB.find(m => m.getPrimaryKey() === model[this.foreignKey])
+            if (!found) {
+                throw new Error("Could not load many to one relation: no match found when loading")
+            }
+            model.setRelation(this, found)
         }
-        return modelsB;
+        return modelsA as (A & Record<Key, M>)[];
     }
 }
