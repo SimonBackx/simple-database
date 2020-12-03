@@ -346,14 +346,13 @@ export class Model /* static implements RowInitiable<Model> */ {
         sort?: (string | { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"})[];
         select?: string;
     }): Promise<InstanceType<T>[]> {
-        if (Object.keys(where).length == 0) {
-            return [];
-        }
-
-        const [whereQuery, params] = this.buildWhereQuery(where)
+        const params: any[] = []
+        
         let query = `SELECT ${extra?.select ?? this.getDefaultSelect()} FROM \`${this.table}\`` 
-        if (whereQuery.length > 0) {
+        if (Object.keys(where).length !== 0) {
+            const [whereQuery, p] = this.buildWhereQuery(where)
             query += `WHERE ` + whereQuery;
+            params.push(...p)
         }
 
         if (extra && extra.sort !== undefined) {
