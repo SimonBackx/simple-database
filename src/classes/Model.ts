@@ -351,7 +351,10 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         const [whereQuery, params] = this.buildWhereQuery(where)
-        let query = `SELECT ${extra?.select ?? this.getDefaultSelect()} FROM \`${this.table}\` WHERE ` + whereQuery;
+        let query = `SELECT ${extra?.select ?? this.getDefaultSelect()} FROM \`${this.table}\`` 
+        if (whereQuery.length > 0) {
+            query += `WHERE ` + whereQuery;
+        }
 
         if (extra && extra.sort !== undefined) {
             const sortQuery: string[] = []
@@ -380,7 +383,6 @@ export class Model /* static implements RowInitiable<Model> */ {
 
         const [rows] = await Database.select(query, params);
 
-        // Read member + address from first row
         return this.fromRows(rows, this.table);
     }
 
