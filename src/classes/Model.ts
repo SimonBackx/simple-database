@@ -406,8 +406,9 @@ export class Model /* static implements RowInitiable<Model> */ {
     /**
      * Return an object of all the properties that are changed and their database representation
      */
-    getChangedDatabaseProperties(): object {
+    getChangedDatabaseProperties(): {fields: object; skipUpdate: number} {
         const set = {};
+        let skipUpdate = 0
         
         for (const column of this.static.columns.values()) {
             // Run beforeSave
@@ -428,12 +429,16 @@ export class Model /* static implements RowInitiable<Model> */ {
 
             if (this[column.name] !== undefined && column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
                 set[column.name] = column.to(this[column.name]);
+
+                if (column.skipUpdate) {
+                    skipUpdate++
+                }
             } else {
                 // Check JSON fields. The reference could have stayed the same, but the value might have changed.
             }
         }
 
-        return set;
+        return {fields: set, skipUpdate};
     }
 
     async save(): Promise<boolean> {
@@ -487,20 +492,25 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        const set = this.getChangedDatabaseProperties();
+        const { fields, skipUpdate } = this.getChangedDatabaseProperties();
 
-        if (Object.keys(set).length == 0) {
+        if (Object.keys(fields).length == 0) {
             if (this.static.debug) console.warn("Tried to update model without any properties modified");
             return false;
         }
 
-        if (this.static.debug) console.log("Saving " + this.constructor.name + " to...", set);
+        if (this.existsInDatabase && skipUpdate === Object.keys(fields).length) {
+            if (this.static.debug) console.warn("Tried to update model without any properties modified");
+            return false;
+        }   
+
+        if (this.static.debug) console.log("Saving " + this.constructor.name + " to...", fields);
 
         // todo: save here
         if (!this.existsInDatabase) {
             if (this.static.debug) console.log(`Creating new ${this.constructor.name}`);
 
-            const [result] = await Database.insert("INSERT INTO `" + this.static.table + "` SET ?", [set]);
+            const [result] = await Database.insert("INSERT INTO `" + this.static.table + "` SET ?", [fields]);
 
             if (this.static.primary.type == "integer" && this.static.primary.name == "id") {
                 // Auto increment value
@@ -510,7 +520,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         } else {
             if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
-            const [result] = await Database.update("UPDATE `" + this.static.table + "` SET ? WHERE `" + this.static.primary.name + "` = ?", [set, id]);
+            const [result] = await Database.update("UPDATE `" + this.static.table + "` SET ? WHERE `" + this.static.primary.name + "` = ?", [fields, id]);
             if (result.changedRows != 1) {
                 console.warn(`Updated ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
             }

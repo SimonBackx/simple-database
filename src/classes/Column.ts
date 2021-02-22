@@ -7,6 +7,11 @@ export class Column {
     name: string;
     nullable = false;
     primary = false;
+
+    /**
+     * Do not save the model if this is the only field that has changed
+     */
+    skipUpdate = false;
     decoder: Decoder<any> | undefined;
     beforeSave?: (value?: any) => any;
 

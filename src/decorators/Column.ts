@@ -11,6 +11,10 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
     primary?: boolean;
     nullable?: boolean;
     decoder?: Decoder<any>;
+    /**
+     * Do not save the model if this is the only field that has changed
+     */
+    skipUpdate?: boolean;
     beforeSave?: (value?: any) => any;
     beforeLoad?: (value?: any) => any;
     foreignKey?: ManyToOneRelation<Key, Value>;
@@ -40,6 +44,10 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
 
         if (settings.nullable) {
             column.nullable = true;
+        }
+
+        if (settings.skipUpdate !== undefined) {
+            column.skipUpdate = settings.skipUpdate
         }
         if (settings.primary) {
             if (target.constructor.primary) {
