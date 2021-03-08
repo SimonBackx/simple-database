@@ -4,8 +4,8 @@ import { ManyToManyRelation } from "./ManyToManyRelation";
 import { ManyToOneRelation } from "./ManyToOneRelation";
 import { OneToManyRelation } from "./OneToManyRelation";
 
-type SQLWhere = { sign: string; value: string | number | null | string[] | number[]; mode?: string }
-type SQLWhereQuery = { [key: string]: string | number | null | SQLWhere }
+type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string }
+type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere }
 
 
 type KeysOfWithout<Base, Key extends keyof Base> = Exclude<keyof Base, Key>;
@@ -294,16 +294,37 @@ export class Model /* static implements RowInitiable<Model> */ {
                 break;
 
             case "=":
-                whereQuery = (`\`${this.table}\`.\`${key}\` = ?`);
-                params.push(value.value);
+                if (value.value === null) {
+                    whereQuery = (`\`${this.table}\`.\`${key}\` IS NULL`);
+                } else {
+                    whereQuery = (`\`${this.table}\`.\`${key}\` = ?`);
+                    params.push(value.value);
+                }
                 break;
 
             case "IN":
-                whereQuery = (`\`${this.table}\`.\`${key}\` IN (?)`);
                 if (!Array.isArray(value.value)) {
                     throw new Error("Expected an array for IN where query")
                 }
-                params.push(value.value);
+                if (value.value.includes(null)) {
+                    const filtered = (value.value as (string | number | null)[]).filter(v => v !== null)
+                    if (filtered.length == 0) {
+                        whereQuery = (`\`${this.table}\`.\`${key}\` IS NULL`);
+                    } else if (filtered.length === 1) {
+                         // Special query
+                        whereQuery = (`(\`${this.table}\`.\`${key}\` = ? OR \`${this.table}\`.\`${key}\` IS NULL)`);
+                        params.push(filtered[0]);
+                    } else {
+                        // Special query
+                        whereQuery = (`(\`${this.table}\`.\`${key}\` IN (?) OR \`${this.table}\`.\`${key}\` IS NULL)`);
+                        params.push(filtered);
+                    }
+                   
+                } else {
+                    whereQuery = (`\`${this.table}\`.\`${key}\` IN (?)`);
+                    params.push(value.value);
+                }
+                
                 break;
 
             default:
@@ -320,7 +341,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         for (const key in where) {
             if (where.hasOwnProperty(key)) {
                 const value = where[key];
-                if (typeof value === "object" && value !== null) {
+                if (typeof value === "object" && value !== null && !(value instanceof Date)) {
                     const [w, p] = this.buildWhereOperator(key, value)
                     whereQuery.push(w)
                     params.push(...p)
