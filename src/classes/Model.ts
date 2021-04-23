@@ -23,6 +23,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      */
     static columns: Map<string, Column>;
     static debug = false;
+    static showWarnings = false;
     static table: string; // override this!
     static relations: ManyToOneRelation<string, Model>[];
 
@@ -516,12 +517,12 @@ export class Model /* static implements RowInitiable<Model> */ {
         const { fields, skipUpdate } = this.getChangedDatabaseProperties();
 
         if (Object.keys(fields).length == 0) {
-            if (this.static.debug) console.warn("Tried to update model without any properties modified");
+            if (this.static.showWarnings) console.warn("Tried to update model without any properties modified");
             return false;
         }
 
         if (this.existsInDatabase && skipUpdate === Object.keys(fields).length) {
-            if (this.static.debug) console.warn("Tried to update model without any properties modified");
+            if (this.static.showWarnings) console.warn("Tried to update model without any properties modified");
             return false;
         }   
 
@@ -542,7 +543,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
             const [result] = await Database.update("UPDATE `" + this.static.table + "` SET ? WHERE `" + this.static.primary.name + "` = ?", [fields, id]);
-            if (result.changedRows != 1) {
+            if (result.changedRows != 1 && this.static.showWarnings) {
                 console.warn(`Updated ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
             }
         }
@@ -566,7 +567,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
         const [result] = await Database.delete("DELETE FROM `" + this.static.table + "` WHERE `" + this.static.primary.name + "` = ?", [id]);
-        if (result.affectedRows != 1) {
+        if (result.affectedRows != 1 && this.static.showWarnings) {
             console.warn(`Deleted ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
         }
 

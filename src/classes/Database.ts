@@ -93,9 +93,11 @@ export const Database = {
         
     },
 
-    finishQuery(_q, _hrstart: [number, number]) {
-        //const hrend = process.hrtime(hrstart);
-        //console.log(q.sql.replace(/\s+/g, " "), "in " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms");
+    finishQuery(q, hrstart: [number, number]) {
+        if (debug) {
+            const hrend = process.hrtime(hrstart);
+            console.log(q.sql.replace(/\s+/g, " "), "in " + (hrend[0] * 1000 + hrend[1] / 1000000) + "ms");
+        }
     },
 
     async select(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[any[], mysql.FieldInfo[] | undefined]> {
