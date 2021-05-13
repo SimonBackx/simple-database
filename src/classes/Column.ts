@@ -1,4 +1,4 @@
-import { Decoder, encodeObject, isEncodeable, ObjectData } from "@simonbackx/simple-encoding";
+import { Decoder, encodeObject, ObjectData } from "@simonbackx/simple-encoding";
 
 import { ColumnType } from "../decorators/Column";
 
