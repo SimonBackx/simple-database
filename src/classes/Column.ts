@@ -1,4 +1,4 @@
-import { Decoder, isEncodeable, ObjectData } from "@simonbackx/simple-encoding";
+import { Decoder, encodeObject, isEncodeable, ObjectData } from "@simonbackx/simple-encoding";
 
 import { ColumnType } from "../decorators/Column";
 
@@ -143,40 +143,11 @@ export class Column {
                 return data;
 
             case "json": {
-                let d = data;
-
                 const version = (this.constructor as typeof Column).jsonVersion;
 
-                if (isEncodeable(data)) {
-                    d = data.encode({ version: version });
-                } else {
-                    if (Array.isArray(data)) {
-                        let warn = false;
-                        d = data.map((v) => {
-                            if (isEncodeable(v)) {
-                                return v.encode({ version: version });
-                            }
-                            if (!warn) {
-                                warn = true;
-                                console.warn(
-                                    "A non encodeable value has been set for an array item inside " +
-                                        this.name +
-                                        " this is not recommended and might become deprecated in the future."
-                                );
-                            }
-
-                            return v;
-                        });
-                    } else {
-                        // Some data has a decoder, but is not encodeable (since it is equal)
-                        /*console.warn(
-                            "A non encodeable value has been set for " + this.name + " this is not recommended and might become deprecated in the future."
-                        );*/
-                    }
-                }
                 return JSON.stringify({
                     version: version,
-                    value: d,
+                    value: encodeObject(data, { version }),
                 });
             }
 
