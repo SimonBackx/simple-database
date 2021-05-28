@@ -5,7 +5,7 @@ import { ManyToOneRelation } from "./ManyToOneRelation";
 import { OneToManyRelation } from "./OneToManyRelation";
 
 type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string }
-type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere }
+type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] }
 
 
 type KeysOfWithout<Base, Key extends keyof Base> = Exclude<keyof Base, Key>;
@@ -342,7 +342,13 @@ export class Model /* static implements RowInitiable<Model> */ {
         for (const key in where) {
             if (where.hasOwnProperty(key)) {
                 const value = where[key];
-                if (typeof value === "object" && value !== null && !(value instanceof Date)) {
+                if (Array.isArray(value)) {
+                    for (const v of value) {
+                        const [w, p] = this.buildWhereOperator(key, v)
+                        whereQuery.push(w)
+                        params.push(...p)
+                    }
+                } else if (typeof value === "object" && value !== null && !(value instanceof Date)) {
                     const [w, p] = this.buildWhereOperator(key, value)
                     whereQuery.push(w)
                     params.push(...p)
