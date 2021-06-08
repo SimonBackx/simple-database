@@ -418,7 +418,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      */
     static async all<T extends typeof Model>(this: T, limit?: number): Promise<InstanceType<T>[]> {
         const params: any[] = [];
-        let query = `SELECT ${this.getDefaultSelect()} FROM ${this.table}`;
+        let query = `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\``;
 
         if (limit) {
             query += ` LIMIT ?`;
