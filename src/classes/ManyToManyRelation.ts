@@ -274,11 +274,17 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         await this.linkIds(modelA, modelsB, linkTableValues);
     }
 
-    async unlink(modelA: A, ...modelsB: B[]): Promise<void> {
+    async unlinkIds(modelA: string | number, ...modelsB: (string | number)[]): Promise<{ affectedRows: number }> {
         const query = `DELETE FROM ${this.linkTable} WHERE ${this.linkKeyA} = ? AND ${this.linkKeyB} IN (?)`;
 
         // Arrays are turned into list, e.g. ['a', 'b'] turns into 'a', 'b'
-        const [result] = await Database.delete(query, [modelA.getPrimaryKey(), modelsB.map((modelB) => modelB.getPrimaryKey())]);
+        const [result] = await Database.delete(query, [modelA, modelsB]);
+
+        return result
+    }
+
+    async unlink(modelA: A, ...modelsB: B[]): Promise<void> {
+        const result = await this.unlinkIds(modelA.getPrimaryKey()!, ...modelsB.map((modelB) => modelB.getPrimaryKey()!))
 
         if (this.isLoaded(modelA)) {
             if (result.affectedRows == modelsB.length) {
