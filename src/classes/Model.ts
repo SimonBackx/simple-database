@@ -434,14 +434,20 @@ export class Model /* static implements RowInitiable<Model> */ {
     /**
      * Return an object of all the properties that are changed and their database representation
      */
-    getChangedDatabaseProperties(): {fields: object; skipUpdate: number} {
+    async getChangedDatabaseProperties(): Promise<{fields: object; skipUpdate: number}> {
         const set = {};
         let skipUpdate = 0
         
         for (const column of this.static.columns.values()) {
             // Run beforeSave
             if (column.beforeSave) {
-                this[column.name] = column.beforeSave.call(this, this[column.name]);
+                const val = column.beforeSave.call(this, this[column.name]);
+                if (val.then) {
+                    this[column.name] = await (val as Promise<any>)
+                } else {
+                    // Skip causing an event-loop jump if not needed
+                    this[column.name] = val
+                }
             }
 
             if (column.primary && column.type == "integer" && this.static.primary.name == "id") {
@@ -520,7 +526,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        const { fields, skipUpdate } = this.getChangedDatabaseProperties();
+        const { fields, skipUpdate } = await this.getChangedDatabaseProperties();
 
         if (Object.keys(fields).length == 0) {
             if (this.static.showWarnings) console.warn("Tried to update model without any properties modified");

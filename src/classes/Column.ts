@@ -13,7 +13,7 @@ export class Column {
      */
     skipUpdate = false;
     decoder: Decoder<any> | undefined;
-    beforeSave?: (value?: any) => any;
+    beforeSave?: (value?: any) => any | Promise<any>;
 
     // Allow handling of new fields etc
     beforeLoad?: (value?: any) => any;
