@@ -7,7 +7,6 @@ import { OneToManyRelation } from "./OneToManyRelation";
 type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string }
 type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] }
 
-
 type KeysOfWithout<Base, Key extends keyof Base> = Exclude<keyof Base, Key>;
 
 type ExcludeKey<Base, Key extends keyof Base> = {
@@ -410,6 +409,18 @@ export class Model /* static implements RowInitiable<Model> */ {
 
         const [rows] = await Database.select(query, params);
 
+        return this.fromRows(rows, this.table);
+    }
+
+    /**
+     * Build your own select query, and cast the result to an arary of Model
+     */
+    static async select<T extends typeof Model>(this: T, query: string, params: any[], select?: string): Promise<InstanceType<T>[]> {
+        const q = (select ? select : `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` `)+query;
+
+        const [rows] = await Database.select(q, params);
+
+        // Read member + address from first row
         return this.fromRows(rows, this.table);
     }
 
