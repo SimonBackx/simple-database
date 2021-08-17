@@ -410,10 +410,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      */
     static async select<T extends typeof Model>(this: T, query: string, params: any[], select?: string): Promise<InstanceType<T>[]> {
         const q = (select ? select : `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` `)+query;
-
         const [rows] = await Database.select(q, params);
-
-        // Read member + address from first row
         return this.fromRows(rows, this.table);
     }
 
@@ -430,8 +427,6 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         const [rows] = await Database.select(query, params);
-
-        // Read member + address from first row
         return this.fromRows(rows, this.table);
     }
 
