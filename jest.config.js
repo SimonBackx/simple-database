@@ -1,13 +1,11 @@
 module.exports = {
-    preset: "ts-jest",
-    roots: ["<rootDir>"],
+    roots: ["<rootDir>/dist"],
     testEnvironment: "node",
     setupFiles: ["dotenv/config"],
-    setupFilesAfterEnv: ["dotenv/config", "jest-extended", "./tests/jest.setup.ts"],
+    setupFilesAfterEnv: ["dotenv/config", "jest-extended", "./dist/tests/jest.setup.js"],
     moduleDirectories: [
         "node_modules",
     ],
-    globalSetup: "./tests/jest.global.setup.ts",
-    modulePathIgnorePatterns: ["dist"]
+    globalSetup: "./dist/tests/jest.global.setup.js",
     //verbose: true,
 };
