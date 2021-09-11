@@ -65,7 +65,7 @@ export const Database = {
         return pool.escapeId(value);
     },
 
-    async end(): Promise<mysql.MysqlError | undefined> {
+    async end(): Promise<void> {
         return new Promise((resolve, reject) => {
             pool.end(function (err) {
                 if (err) {
