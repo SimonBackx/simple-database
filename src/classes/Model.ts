@@ -47,6 +47,13 @@ export class Model /* static implements RowInitiable<Model> */ {
     }
 
     /**
+     * Mark all properties as changed, so they will get updated on the next save
+     */
+    markAllChanged() {
+        this.savedProperties = new Map<string, any>();
+    }
+
+    /**
      * Returns the default select to select the needed properties of this table
      * @param namespace: optional namespace of this select
      */
