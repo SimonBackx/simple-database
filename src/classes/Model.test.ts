@@ -86,6 +86,23 @@ describe("Model", () => {
         static sortedChildren = new OneToManyRelation(TestModel, TestModel, "sortedChildren", "parentId").setSort("count");
     }
 
+    // Create a new class
+    class Dog extends Model {
+        static table = "dogs";
+
+        @column({ primary: true, type: "integer" })
+        id: number | null = null;
+
+        @column({ type: "string" })
+        name: string;
+
+        @column({
+            type: "datetime",
+            skipUpdate: true
+        })
+        updatedAt: Date;
+    }
+
     test("Not possible to choose own primary key for integer type primary", async () => {
         const m = new TestModel();
         m.id = 123;
@@ -111,6 +128,54 @@ describe("Model", () => {
         await m.save();
         expect(m.createdOn).toBe(date);
     });
+
+    test("Skip update fields", async() => {
+        const now = new Date()
+        now.setMilliseconds(0)
+        const dog = new Dog();
+        dog.name = "My dog"
+        dog.updatedAt = now
+        await expect(dog.save()).resolves.toEqual(true)
+
+        dog.updatedAt = new Date(0)
+        await expect(dog.save()).resolves.toEqual(false)
+
+        const loadedDog = await Dog.getByID(dog.id!)
+        expect(loadedDog).toBeDefined()
+        expect(loadedDog!.updatedAt).toEqual(now)
+    })
+
+    test("Force save skip updated field", async() => {
+        const now = new Date()
+        now.setMilliseconds(0)
+        const dog = new Dog();
+        dog.name = "My dog"
+        dog.updatedAt = now
+        await expect(dog.save()).resolves.toEqual(true)
+
+        dog.updatedAt = new Date(0)
+        dog.forceSaveProperty("updatedAt")
+        await expect(dog.save()).resolves.toEqual(true)
+
+        const loadedDog = await Dog.getByID(dog.id!)
+        expect(loadedDog).toBeDefined()
+        expect(loadedDog!.updatedAt).toEqual(new Date(0))
+    })
+
+    test("Force save field", async() => {
+        const now = new Date()
+        now.setMilliseconds(0)
+        const dog = new Dog();
+        dog.name = "My dog"
+        dog.updatedAt = now
+        await expect(dog.save()).resolves.toEqual(true)
+
+        dog.forceSaveProperty("name")
+        await expect(dog.save()).resolves.toEqual(true)
+
+        const loadedDog = await Dog.getByID(dog.id!)
+        expect(loadedDog).toBeDefined()
+    })
 
     test("Creating a model requires to set all properties", async () => {
         const m = new TestModel();

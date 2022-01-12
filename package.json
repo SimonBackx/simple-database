@@ -5,8 +5,8 @@
     "version": "1.20.0",
     "scripts": {
         "test": "yarn build && jest",
-        "build": "tsc -p . --declaration && cp -a ./src/migrations ./dist/src/migrations",
-        "migrations": "NODE_ENV=development ts-node ./migrations.ts",
+        "build": "rm -rf ./dist && tsc -p . --declaration && mkdir -p ./dist/src/migrations && cp -a ./src/migrations/*.sql ./dist/src/migrations",
+        "migrations": "yarn build && tsc -p . --declaration && mkdir -p ./dist/src/migrations && cp -a ./src/test-migrations/*.sql ./dist/src/migrations && node ./dist/migrations.js",
         "lint": "eslint . --ext .js,.ts"
     },
     "files": [
