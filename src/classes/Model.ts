@@ -23,6 +23,12 @@ export class Model /* static implements RowInitiable<Model> */ {
 
     private savedProperties = new Map<string, any>();
 
+    /**
+     * Sometimes we have skipUpdate properties that still should get saved on specific occasions. 
+     * E.g. update updatedAt field manually if is the only changed field.
+     */
+    private forceSaveProperties = new Set<string>();
+
     constructor() {
         // Read values
         if (!this.static.relations) {
@@ -44,6 +50,13 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
         delete this[key];
         this.savedProperties.delete(key);
+    }
+
+    /**
+     * Make sure this key will get saved on the next save, even when it is not changed or when it is skipUpdate
+     */
+    forceSaveProperty(key: string) {
+        this.forceSaveProperties.add(key);
     }
 
     /**
@@ -177,6 +190,8 @@ export class Model /* static implements RowInitiable<Model> */ {
         this.existsInDatabase = true;
 
         this.savedProperties.clear();
+        this.forceSaveProperties.clear();
+        
         for (const column of this.static.columns.values()) {
             if (this[column.name] !== undefined) {
                 // If undefined: do not update, since we didn't save the value
@@ -467,14 +482,15 @@ export class Model /* static implements RowInitiable<Model> */ {
                 throw new Error("Tried to create model " + this.constructor.name + " with undefined property " + column.name);
             }
 
-            if (this[column.name] !== undefined && column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
-                set[column.name] = column.to(this[column.name]);
+            if (this[column.name] !== undefined) {
+                const forceSave = this.forceSaveProperties.has(column.name) 
+                if (forceSave || column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
+                    set[column.name] = column.to(this[column.name]);
 
-                if (column.skipUpdate) {
-                    skipUpdate++
+                    if (column.skipUpdate && !forceSave) {
+                        skipUpdate++
+                    }
                 }
-            } else {
-                // Check JSON fields. The reference could have stayed the same, but the value might have changed.
             }
         }
 
