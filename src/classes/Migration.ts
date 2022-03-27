@@ -28,6 +28,7 @@ export class Migration {
      */
     static async runAll(folder: string): Promise<boolean> {
         console.log("Running all migrations...")
+        process.env.DB_MULTIPLE_STATEMENTS = "true";
 
         // First check if we have migrations table
         const setupMigration = await this.getMigration(__dirname + '/../migrations/000000000-setup-migrations.sql')
@@ -110,13 +111,9 @@ export class Migration {
                 return;
             }
             const sqlStatement = await fs.readFile(file, { encoding: "utf-8" });
-            const statements = sqlStatement.split(";");
 
             migration = new Migration(async () => {
-                for (const statement of statements) {
-                    const trimmed = statement.trim();
-                    if (trimmed.length > 0) await Database.statement(trimmed);
-                }
+                await Database.statement(sqlStatement);
             });
 
         } else {
