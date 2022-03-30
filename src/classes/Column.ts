@@ -18,7 +18,14 @@ export class Column {
     // Allow handling of new fields etc
     beforeLoad?: (value?: any) => any;
 
-    static jsonVersion = 0;
+    private static jsonVersion = 0;
+
+    /**
+     * Set the version used for JSON encoding in simple-encoding
+     */
+    static setJSONVersion(version: number): void {
+        Column.jsonVersion = version;
+    }
 
     constructor(type: ColumnType, name: string) {
         this.type = type;
@@ -143,7 +150,7 @@ export class Column {
                 return data;
 
             case "json": {
-                const version = (this.constructor as typeof Column).jsonVersion;
+                const version = Column.jsonVersion;
 
                 return JSON.stringify({
                     version: version,

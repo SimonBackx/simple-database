@@ -551,33 +551,33 @@ export class Model /* static implements RowInitiable<Model> */ {
         const { fields, skipUpdate } = await this.getChangedDatabaseProperties();
 
         if (Object.keys(fields).length == 0) {
-            if (this.static.showWarnings) console.warn("Tried to update model without any properties modified");
+            if (Model.showWarnings) console.warn("Tried to update model without any properties modified");
             return false;
         }
 
         if (this.existsInDatabase && skipUpdate === Object.keys(fields).length) {
-            if (this.static.showWarnings) console.warn("Tried to update model without any properties modified");
+            if (Model.showWarnings) console.warn("Tried to update model without any properties modified");
             return false;
         }   
 
-        if (this.static.debug) console.log("Saving " + this.constructor.name + " to...", fields);
+        if (Model.debug) console.log("Saving " + this.constructor.name + " to...", fields);
 
         // todo: save here
         if (!this.existsInDatabase) {
-            if (this.static.debug) console.log(`Creating new ${this.constructor.name}`);
+            if (Model.debug) console.log(`Creating new ${this.constructor.name}`);
 
             const [result] = await Database.insert("INSERT INTO `" + this.static.table + "` SET ?", [fields]);
 
             if (this.static.primary.type == "integer" && this.static.primary.name == "id") {
                 // Auto increment value
                 this[this.static.primary.name] = result.insertId;
-                if (this.static.debug) console.log(`New id = ${this[this.static.primary.name]}`);
+                if (Model.debug) console.log(`New id = ${this[this.static.primary.name]}`);
             }
         } else {
-            if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
+            if (Model.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
             const [result] = await Database.update("UPDATE `" + this.static.table + "` SET ? WHERE `" + this.static.primary.name + "` = ?", [fields, id]);
-            if (result.changedRows != 1 && this.static.showWarnings) {
+            if (result.changedRows != 1 && Model.showWarnings) {
                 console.warn(`Updated ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
             }
         }
@@ -598,10 +598,10 @@ export class Model /* static implements RowInitiable<Model> */ {
             throw new Error("Model " + this.constructor.name + " can't be deleted if it doesn't exist in the database already");
         }
 
-        if (this.static.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
+        if (Model.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
         const [result] = await Database.delete("DELETE FROM `" + this.static.table + "` WHERE `" + this.static.primary.name + "` = ?", [id]);
-        if (result.affectedRows != 1 && this.static.showWarnings) {
+        if (result.affectedRows != 1 && Model.showWarnings) {
             console.warn(`Deleted ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
         }
 
