@@ -1,11 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Column } from "./Column";
-import { Database } from "./Database";
-import { ManyToManyRelation } from "./ManyToManyRelation";
-import { ManyToOneRelation } from "./ManyToOneRelation";
-import { OneToManyRelation } from "./OneToManyRelation";
-
-type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string }
-type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] }
+import { Database, SQLResultNamespacedRow, SQLResultRow } from "./Database";
+import { ModelConstructor, ParseWhereArguments, SelectQuery, Where, WhereSign } from "./Query";
+import { ModelWith, ToOne, ToMany, Relation } from "./relations/ToOne";
 
 export class Model /* static implements RowInitiable<Model> */ {
     static primary: Column;
@@ -17,7 +14,7 @@ export class Model /* static implements RowInitiable<Model> */ {
     static debug = false;
     static showWarnings = false;
     static table: string; // override this!
-    static relations: ManyToOneRelation<string, Model>[];
+    static relations: ToOne<'const', Model>[];
 
     existsInDatabase = false;
 
@@ -88,7 +85,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Set a relation to undefined, marking it as not loaded (so it won't get saved in the next save)
      * @param relation
      */
-    unloadRelation<Key extends keyof any, Value extends Model>(
+    /*unloadRelation<Key extends keyof any, Value extends Model>(
         this: this & Record<Key, Value>,
         relation: ManyToOneRelation<Key, any>
     ): this & Record<Key, undefined> {
@@ -96,21 +93,21 @@ export class Model /* static implements RowInitiable<Model> */ {
         const t = this as any;
         delete t[relation.modelKey];
         return t;
-    }
+    }*/
 
     /**
      * Set a relation to null, deleting it on the next save (unless unloadRelation is called)
      * @param relation
      */
-    unsetRelation<Key extends keyof any, Value extends Model>(
+    /*unsetRelation<Key extends keyof any, Value extends Model>(
         this: this & Record<Key, Value>,
         relation: ManyToOneRelation<Key, any>
     ): this & Record<Key, null> {
         // Todo: check if relation is nullable?
         return this.setOptionalRelation(relation, null);
-    }
+    }*/
 
-    setOptionalRelation<Key extends keyof any, Value extends Model>(
+    /*setOptionalRelation<Key extends keyof any, Value extends Model>(
         relation: ManyToOneRelation<Key, Value>,
         value: Value | null
     ): this & Record<Key, Value | null> {
@@ -123,9 +120,9 @@ export class Model /* static implements RowInitiable<Model> */ {
         t[relation.modelKey] = value;
         t[relation.foreignKey] = value ? value.getPrimaryKey() : null;
         return t;
-    }
+    }*/
 
-    setRelation<Key extends keyof any, Value extends Model, V extends Value>(relation: ManyToOneRelation<Key, Value>, value: V): this & Record<Key, V> {
+    /*setRelation<Key extends keyof any, Value extends Model, V extends Value>(relation: ManyToOneRelation<Key, Value>, value: V): this & Record<Key, V> {
         if (!value.existsInDatabase) {
             throw new Error("You cannot set a relation to a model that are not yet saved in the database.");
         }
@@ -133,12 +130,52 @@ export class Model /* static implements RowInitiable<Model> */ {
         t[relation.modelKey] = value;
         t[relation.foreignKey] = value.getPrimaryKey();
         return t;
+    }*/
+
+    // TypeScript is having a hard type resolving the types correctly, so we help it a bit by adding some more specific types for each relation type
+    //setRelation<Key extends string, M extends Model>(relation: ToMany<Key, M>, value: M[]): asserts this is this & Record<Key, M[]>
+    //setRelation<Key extends string, M extends Model>(relation: ToOne<Key, M>, value: M): asserts this is this & Record<Key, M>
+    setRelation<Key extends string, Value>(relation: Relation<Key, Value>, value: Value): asserts this is this & Record<Key, Value> {
+        if (Array.isArray(value)) {
+            for (const v of value) {
+                if (!v.existsInDatabase) {
+                    throw new Error("You cannot set a relation to an array with a model that are not yet saved in the database.");
+                }
+            }
+        } else if (value !== null && !(value as any).existsInDatabase) {
+            throw new Error("You cannot set a relation to a model that are not yet saved in the database.");
+        }
+        
+        /*this[relation.modelKey] = value;
+        t[relation.foreignKey] = value.getPrimaryKey();*/
+        const t = this as any;
+
+        if (relation instanceof ToOne) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            t[relation.modelKey] = value;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            t[relation.foreignKey] = (value as Model)?.getPrimaryKey() ?? null;
+        } else {
+            t[relation.modelKey] = value;
+        }
+    }
+
+    /// Whether this relation is loaded
+    isLoaded<R extends Relation<any, any>>(relation: R): this is ModelWith<this, R> {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        return this[relation.modelKey] !== undefined;
+    }
+
+    /// Whether this relation is set (and not null)
+    isSet<R extends Relation<any, any>>(relation: R): this is ModelWith<this, R> {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        return this[relation.modelKey] !== undefined && this[relation.modelKey] !== null;
     }
 
     /**
      * Set a many relation. Note that this doesn't save the relation! You'll need to use the methods of the relation instead
      */
-    setManyRelation<Key extends keyof any, Value extends Model>(
+    /*setManyRelation<Key extends keyof any, Value extends Model>(
         relation: ManyToManyRelation<Key, any, Value, any> | OneToManyRelation<Key, any, Value>,
         value: Value[]
     ): this & Record<Key, Value[]> {
@@ -150,19 +187,20 @@ export class Model /* static implements RowInitiable<Model> */ {
         const t = this as any;
         t[relation.modelKey] = value;
         return t;
-    }
+    }*/
 
     /**
      * Load the returned properties from a DB response row into the model
      * If the row's primary key is null, undefined is returned
      */
-    static fromRow<T extends typeof Model>(this: T, row: any): InstanceType<T> | undefined {
+    static fromRow<T extends Model>(this: ModelConstructor<T>, row: SQLResultRow): T | undefined {
         if (row === undefined || (this.primary && (row[this.primary.name] === null || row[this.primary.name] === undefined))) {
             return undefined;
         }
 
-        const model = new this() as InstanceType<T>;
+        const model = new this();
         for (const column of this.columns.values()) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (row[column.name] !== undefined) {
                 const value = column.from(row[column.name]);
                 model[column.name] = value;
@@ -176,14 +214,16 @@ export class Model /* static implements RowInitiable<Model> */ {
         return model;
     }
 
-    static fromRows<T extends typeof Model>(this: T, rows: any[], namespace: string): InstanceType<T>[] {
+    static fromRows<T extends Model>(this: ModelConstructor<T>, rows: SQLResultNamespacedRow[], namespace: string): T[] {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return rows.flatMap((row) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const model = this.fromRow(row[namespace]);
             if (model) {
                 return [model];
             }
             return [];
-        });
+        }) as any;
     }
 
     private markSaved() {
@@ -201,13 +241,9 @@ export class Model /* static implements RowInitiable<Model> */ {
 
         /// Save relation foreign keys (so we can check if the id has changed)
         for (const relation of this.static.relations) {
-            if (relation.isLoaded(this)) {
-                if (relation.isSet(this)) {
-                    const model = this[relation.modelKey];
-                    this[relation.foreignKey] = model.getPrimaryKey();
-                } else {
-                    this[relation.foreignKey] = null;
-                }
+            if (this.isLoaded(relation)) {
+                const model = this[relation.modelKey];
+                this[relation.foreignKey] = model?.getPrimaryKey() ?? null;
             }
         }
     }
@@ -216,174 +252,34 @@ export class Model /* static implements RowInitiable<Model> */ {
         return this.constructor as typeof Model;
     }
 
-    getPrimaryKey(): number | string | null {
-        return this[this.static.primary.name];
+    getPrimaryKey(): number | string {
+        return (this as Record<string, unknown>)[this.static.primary.name] as number | string;
     }
 
     /**
      * Get a model by its primary key
      * @param id primary key
      */
-    static async getByID<T extends typeof Model>(this: T, id: number | string): Promise<InstanceType<T> | undefined> {
-        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE \`${this.primary.name}\` = ? LIMIT 1`, [id]);
-
-        if (rows.length == 0) {
-            return undefined;
-        }
-
-        // Read member + address from first row
-        return this.fromRow(rows[0][this.table]);
+    static async getByID<T extends Model>(this: ModelConstructor<T>, id: number | string): Promise<T | undefined> {
+        return await this.select().where(this.primary.name, id).first();
     }
 
     /**
      * Get multiple models by their ID
      * @param ids primary key of the models you want to fetch
      */
-    static async getByIDs<T extends typeof Model>(this: T, ...ids: (number | string)[]): Promise<InstanceType<T>[]> {
+    static async getByIDs<T extends Model>(this: ModelConstructor<T>, ...ids: (number | string)[]): Promise<T[]> {
         if (ids.length == 0) {
             return [];
         }
-        const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE \`${this.primary.name}\` IN (?) LIMIT ?`, [
-            ids,
-            ids.length,
-        ]);
-
-        // Read member + address from first row
-        return this.fromRows(rows, this.table);
+        return await this.select().where(this.primary.name, ids).fetch();
     }
 
-    static buildWhereOperator(key: string, value: SQLWhere): [string, any[]] {
-        let whereQuery: string
-        const params: any[] = [];
-
-        switch (value.sign) {
-            case "MATCH": {
-                let suffix = "";
-                if (value.mode) {
-                    switch (value.mode) {
-                        case "BOOLEAN":
-                            suffix = " IN BOOLEAN MODE";
-                            break;
-                        default:
-                            throw new Error("Unknown match mode " + value.mode)
-
-                    }
-                }
-                whereQuery = (`MATCH(\`${this.table}\`.\`${key}\`) AGAINST(?${suffix})`);
-                params.push(value.value);
-                break;
-            }
-
-            case "LIKE":
-                whereQuery = (`\`${this.table}\`.\`${key}\` LIKE ?`);
-                params.push(value.value);
-                break;
-
-            case "!=":
-                if (value.value === null) {
-                    whereQuery = (`\`${this.table}\`.\`${key}\` IS NOT NULL`);
-                } else {
-                    whereQuery = (`\`${this.table}\`.\`${key}\` != ?`);
-                    params.push(value.value);
-                }
-                break;
-
-            case "<":
-                whereQuery = (`\`${this.table}\`.\`${key}\` < ?`);
-                params.push(value.value);
-                break;
-
-            case ">":
-                whereQuery = (`\`${this.table}\`.\`${key}\` > ?`);
-                params.push(value.value);
-                break;
-
-            case "<=":
-                whereQuery = (`\`${this.table}\`.\`${key}\` <= ?`);
-                params.push(value.value);
-                break;
-
-            case ">=":
-                whereQuery = (`\`${this.table}\`.\`${key}\` >= ?`);
-                params.push(value.value);
-                break;
-
-            case "=":
-                if (value.value === null) {
-                    whereQuery = (`\`${this.table}\`.\`${key}\` IS NULL`);
-                } else {
-                    whereQuery = (`\`${this.table}\`.\`${key}\` = ?`);
-                    params.push(value.value);
-                }
-                break;
-
-            case "IN":
-                if (!Array.isArray(value.value)) {
-                    throw new Error("Expected an array for IN where query")
-                }
-                if (value.value.includes(null)) {
-                    const filtered = (value.value as (string | number | null)[]).filter(v => v !== null)
-                    if (filtered.length == 0) {
-                        whereQuery = (`\`${this.table}\`.\`${key}\` IS NULL`);
-                    } else if (filtered.length === 1) {
-                         // Special query
-                        whereQuery = (`(\`${this.table}\`.\`${key}\` = ? OR \`${this.table}\`.\`${key}\` IS NULL)`);
-                        params.push(filtered[0]);
-                    } else {
-                        // Special query
-                        whereQuery = (`(\`${this.table}\`.\`${key}\` IN (?) OR \`${this.table}\`.\`${key}\` IS NULL)`);
-                        params.push(filtered);
-                    }
-                   
-                } else {
-                    whereQuery = (`\`${this.table}\`.\`${key}\` IN (?)`);
-                    params.push(value.value);
-                }
-                
-                break;
-
-            default:
-                throw new Error("Sign not supported.");
-        }
-
-        return [whereQuery, params]
-    }
-
-    static buildWhereQuery(where: SQLWhereQuery): [string, any[]] {
-        const whereQuery: string[] = [];
-        const params: any[] = [];
-
-        for (const key in where) {
-            if (where.hasOwnProperty(key)) {
-                const value = where[key];
-                if (Array.isArray(value)) {
-                    for (const v of value) {
-                        const [w, p] = this.buildWhereOperator(key, v)
-                        whereQuery.push(w)
-                        params.push(...p)
-                    }
-                } else if (typeof value === "object" && value !== null && !(value instanceof Date)) {
-                    const [w, p] = this.buildWhereOperator(key, value)
-                    whereQuery.push(w)
-                    params.push(...p)
-                } else {
-                    if (value === null) {
-                        whereQuery.push(`\`${this.table}\`.\`${key}\` IS NULL`);
-                    } else {
-                        whereQuery.push(`\`${this.table}\`.\`${key}\` = ?`);
-                        params.push(value);
-                    }
-                }
-            }
-        }
-
-        return [whereQuery.join(" AND "), params];
-    }
 
     /**
      * Get multiple models by a simple where
      */
-    static async where<T extends typeof Model>(this: T, where: SQLWhereQuery, extra?: { 
+    /*static async where<T extends typeof Model>(this: T, where: SQLWhereQuery, extra?: { 
         limit?: number; 
         sort?: (string | { column: string | SQLWhereQuery; direction?: "ASC" | "DESC"})[];
         select?: string;
@@ -425,21 +321,29 @@ export class Model /* static implements RowInitiable<Model> */ {
         const [rows] = await Database.select(query, params);
 
         return this.fromRows(rows, this.table);
-    }
+    }*/
 
     /**
      * Build your own select query, and cast the result to an arary of Model
      */
-    static async select<T extends typeof Model>(this: T, query: string, params: any[], select?: string): Promise<InstanceType<T>[]> {
+    /*static async select<T extends typeof Model>(this: T, query: string, params: any[], select?: string): Promise<InstanceType<T>[]> {
         const q = (select ? select : `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` `)+query;
         const [rows] = await Database.select(q, params);
         return this.fromRows(rows, this.table);
+    }*/
+
+    static select<T extends Model>(this: ModelConstructor<T>): SelectQuery<T> {
+        return new SelectQuery(this)
+    }
+
+    static where<T extends Model>(this: ModelConstructor<T>, ...args: ParseWhereArguments): SelectQuery<T> {
+        return new SelectQuery(this).where(...args);
     }
 
     /**
      * Get multiple models by a simple where
      */
-    static async all<T extends typeof Model>(this: T, limit?: number): Promise<InstanceType<T>[]> {
+    static async all<T extends Model>(this: ModelConstructor<T>, limit?: number): Promise<T[]> {
         const params: any[] = [];
         let query = `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\``;
 
@@ -455,20 +359,14 @@ export class Model /* static implements RowInitiable<Model> */ {
     /**
      * Return an object of all the properties that are changed and their database representation
      */
-    async getChangedDatabaseProperties(): Promise<{fields: object; skipUpdate: number}> {
-        const set = {};
+    async getChangedDatabaseProperties(): Promise<{fields: Record<string, unknown>; skipUpdate: number}> {
+        const set: Record<string, unknown> = {};
         let skipUpdate = 0
         
         for (const column of this.static.columns.values()) {
             // Run beforeSave
             if (column.beforeSave) {
-                const val = column.beforeSave.call(this, this[column.name]);
-                if (val.then) {
-                    this[column.name] = await (val as Promise<any>)
-                } else {
-                    // Skip causing an event-loop jump if not needed
-                    this[column.name] = val
-                }
+                this[column.name] = await column.beforeSave.call(this, this[column.name]);
             }
 
             if (column.primary && column.type == "integer" && this.static.primary.name == "id") {
@@ -503,16 +401,16 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         if (!this.static.primary) {
-            throw new Error("Primary key not set for model " + this.constructor.name + " " + this.static);
+            throw new Error("Primary key not set for model " + this.constructor.name);
         }
 
         // Check if relation models were modified
         for (const relation of this.static.relations) {
             // If a relation is loaded, we can check if it changed the value of the foreign key
-            if (relation.isLoaded(this)) {
+            if (this.isLoaded(relation)) {
                 // The foreign key is modified (set, changed or cleared)
-                if (relation.isSet(this)) {
-                    const model = this[relation.modelKey] as Model;
+                if (this.isSet(relation)) {
+                    const model = this[relation.modelKey] ;
 
                     if (!model.existsInDatabase) {
                         throw new Error("You cannot set a relation that is not yet saved in the database.");
@@ -571,6 +469,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             if (this.static.primary.type == "integer" && this.static.primary.name == "id") {
                 // Auto increment value
                 this[this.static.primary.name] = result.insertId;
+                // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                 if (Model.debug) console.log(`New id = ${this[this.static.primary.name]}`);
             }
         } else {

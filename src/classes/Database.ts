@@ -1,5 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import fs from "fs";
 import mysql from "mysql";
+export type SQLResultRow = Record<string, unknown>
+export type SQLResultNamespacedRow = Record<string, SQLResultRow>
 
 if (!process.env.DB_DATABASE) {
     throw new Error("Environment variable DB_DATABASE is missing");
@@ -101,7 +106,7 @@ export const Database = {
         }
     },
 
-    async select(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[any[], mysql.FieldInfo[] | undefined]> {
+    async select(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[SQLResultNamespacedRow[], mysql.FieldInfo[] | undefined]> {
         const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
         return new Promise((resolve, reject) => {
             const hrstart = this.startQuery();

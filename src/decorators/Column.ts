@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Decoder } from "@simonbackx/simple-encoding";
 
 import { Column } from "../classes/Column";
-import { ManyToOneRelation } from "../classes/ManyToOneRelation";
 import { Model } from "../classes/Model";
+import { ToOne } from "../classes/relations/ToOne";
 
 export type ColumnType = "integer" | "number" | "string" | "date" | "datetime" | "boolean" | "json";
 
-export function column<Key extends keyof any, Value extends Model>(settings: {
+export function column<Key extends string, Value extends Model>(settings: {
     type: ColumnType;
     primary?: boolean;
     nullable?: boolean;
@@ -17,9 +19,9 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
     skipUpdate?: boolean;
     beforeSave?: (value?: any) => any;
     beforeLoad?: (value?: any) => any;
-    foreignKey?: ManyToOneRelation<Key, Value>;
+    foreignKey?: ToOne<string, Value>;
 }) {
-    return (target: any /* future typeof Model */, key: string) => {
+    return (target: any /* future typeof Model */, key: Key) => {
         if (!target.constructor.columns) {
             target.constructor.columns = new Map<string, Column>();
         }

@@ -16,7 +16,7 @@ module.exports = {
         "no-console": "off",
         "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
         "simple-import-sort/sort": "warn",
-        "no-prototype-builtins": "off",
+        "no-prototype-builtins": "off"
     },
     overrides: [
         {
@@ -49,6 +49,9 @@ module.exports = {
                 "@typescript-eslint/no-empty-interface": "off", // It is convenient to have placeholder interfaces
                 "@typescript-eslint/no-this-alias": "off", // No idea why we need this. This breaks code that is just fine. Prohibit the use of function() instead of this rule
                 "@typescript-eslint/unbound-method": "off", // Methods are automatically bound in vue, it would break removeEventListeners if we bound it every time unless we save every method in variables again...
+                "@typescript-eslint/no-unsafe-assignment": "off",
+                "@typescript-eslint/no-unsafe-call": "off",
+                "@typescript-eslint/no-unsafe-member-access": "off"
             },
         }
     ]

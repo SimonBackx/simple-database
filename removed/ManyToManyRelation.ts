@@ -1,5 +1,6 @@
 import { Database } from "./Database";
 import { Model } from "./Model";
+import { ColumnRawValue, SelectQuery } from "./Query";
 
 export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model, Link extends Model | undefined = undefined> {
     modelA: { new (): A } & typeof Model;
@@ -87,6 +88,36 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
         return str + "\n";
     }
+
+    withRelations: any[] = []
+
+    /*loadQuery(modelAIds: ColumnRawValue[]): SelectQuery<B & { _link: Link}> {
+        const query = new SelectQuery<B>(this.modelB)
+        .join(this.modelA, {
+            [this.linkKeyA]: {
+                model: this.modelB,
+                column: this.linkKeyB
+            }
+        })
+        .where({
+            model: this.modelA,
+            column: this.modelA.primary.name
+        }, modelAIds)
+
+        // todo: add link
+
+        // todo: implement sorting here
+
+        // todo: also add other types
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return query as any;
+    }
+
+    withMany<Key extends keyof any, B extends Model>(queryBuilder: {loadQuery (ids: (string | number | null)[]): SelectQuery<B>, modelKey: Key}): SelectQuery<M & Record<Key, B[]>> {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return this as any;
+    }*/
 
     /// Load the relation of a model and return the loaded models
     async load(modelA: A, sorted = true, where?: object, whereLink?: object): Promise<(B & { _link: Link})[]> {
