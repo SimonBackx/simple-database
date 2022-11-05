@@ -463,7 +463,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             // Run beforeSave
             if (column.beforeSave) {
                 const val = column.beforeSave.call(this, this[column.name]);
-                if (val.then) {
+                if (val && val.then) {
                     this[column.name] = await (val as Promise<any>)
                 } else {
                     // Skip causing an event-loop jump if not needed
