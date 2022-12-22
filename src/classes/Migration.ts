@@ -1,8 +1,8 @@
-import colors from "colors";
 import { promises as fs } from "fs";
 
 import { Migration as MigrationModel } from "../models/Migration";
 import { Database } from './Database';
+import {logger, StyledText} from "@simonbackx/simple-logging"
 
 type MigrationFunction = () => Promise<void>;
 
@@ -27,7 +27,19 @@ export class Migration {
      * Given a folder, loop all the folders in that folder and run the migrations in the 'migrations' folder
      */
     static async runAll(folder: string): Promise<boolean> {
-        process.stdout.write(colors.bold("Running all migrations... \n"));
+        const dirname = __dirname;
+
+        // Get the current working directory by removing shared part of folder and dirname
+        const shared = dirname.split("/").filter((part, index) => part == folder.split("/")[index]).join("/")
+        const cwd = folder.replace(shared, "")
+
+        logger.log(
+            new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+            ' ',
+            new StyledText('Running all... ').addClass('migration', 'runAll'),
+            new StyledText(cwd).addClass('migration', 'folder').addStyle('dim')
+        )
+
         process.env.DB_MULTIPLE_STATEMENTS = "true";
 
         // First check if we have migrations table
@@ -88,18 +100,53 @@ export class Migration {
             if (!migration) {
                 continue;
             }
+                        
+            logger.log(
+                new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+                ' ',
+                new StyledText('Running ').addClass('migration', 'start'),
+                new StyledText(name).addClass('migration', 'start', 'name'),
+            )
 
-            process.stdout.write(colors.bold("Running migration " + name + "\n"));
             try {
-                await migration.up();
-                await MigrationModel.markAsExecuted(name);
-                process.stdout.write(name + ": " + colors.green("OK") + "\n");
+                await logger.setContext({
+                    prefixes: [new StyledText('[Migration]').addClass('migration', 'prefix'), ' '],
+                    tags: ['migration']
+                }, async () => {
+                    await migration.up();
+                    await MigrationModel.markAsExecuted(name);
+                })
+
+                logger.log(
+                    new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+                    ' ',
+                    new StyledText('✓').addClass('migration', 'success', 'tag'),
+                    ' ',
+                    new StyledText("Migration " + name + " ran successfully").addClass('migration', 'success', 'text'),
+                )
+
             } catch (e) {
-                process.stdout.write(name + ": " + colors.red("FAILED") + "\n");
-                process.stderr.write(colors.bold.red("Error: " + e.message + "\n"));
+                // Logger.errorWithContext({textColor: ['dim', 'red'], prefix: ' FAILED ', addSpace: true, prefixColor: ['bgRed']}, "Migration " + name + " failed", e)
+                logger.error(
+                    new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+                    ' ',
+                    new StyledText('✗').addClass('migration', 'failed', 'tag'),
+                    ' ',
+                    new StyledText("Migration " + name + " failed").addClass('migration', 'failed', 'text'),
+                    ' ',
+                    new StyledText(e).addClass('migration', 'failed', 'error')
+                )
                 return false;
             }
         }
+
+        logger.log(
+            new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+            ' ',
+            new StyledText('✨').addClass('migration', 'success', 'tag', 'all'),
+            ' ',
+            new StyledText("All migrations done").addClass('migration', 'success', 'text', 'all'),
+        )
         return true;
     }
 

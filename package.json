@@ -13,18 +13,20 @@
         "dist"
     ],
     "dependencies": {
+        "@simonbackx/simple-logging": "^1.0.0",
         "colors": "^1.4.0",
         "mysql": "^2.18.1"
     },
     "peerDependencies": {
-        "@simonbackx/simple-encoding": "^2.4.4",
+        "@simonbackx/simple-encoding": "^2.8.1",
         "mysql": "^2.18.1"
     },
     "devDependencies": {
-        "@simonbackx/simple-encoding": "^2.4.4",
-        "@simonbackx/simple-errors": "^1.3.0",
+        "@simonbackx/simple-encoding": "^2.8.1",
+        "@simonbackx/simple-errors": "^1.4.0",
         "@types/jest": "^27.0.1",
         "@types/mysql": "^2.15.20",
+        "@types/node": "^18.11.17",
         "@typescript-eslint/eslint-plugin": "^4.31.0",
         "@typescript-eslint/parser": "^4.31.0",
         "dotenv": "^10.0.0",
@@ -33,7 +35,7 @@
         "eslint-plugin-simple-import-sort": "^7.0.0",
         "jest": "^27.1.1",
         "jest-extended": "^0.11.5",
-        "typescript": "^4.4",
-        "uuid": "^8.3.2"
+        "typescript": "^4.9.4",
+        "uuid": "^9.0.0"
     }
 }

@@ -760,15 +760,22 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@simonbackx/simple-encoding@^2.4.4":
-  version "2.4.4"
-  resolved "https://registry.yarnpkg.com/@simonbackx/simple-encoding/-/simple-encoding-2.4.4.tgz#0106eb5a6060f9f5210aae45f56c424ec9b71d51"
-  integrity sha512-vK3fRK4VQesMN1nrC/6Ijos4X3s5xbcxk6yWOA7j7wWmn6ZSsufvwYGeMnKhJH+us93hAmoTp5SYscunz7caGw==
+"@simonbackx/simple-encoding@^2.8.1":
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/@simonbackx/simple-encoding/-/simple-encoding-2.8.1.tgz#67a888ce15dcda98630897541c77fcd273a6810c"
+  integrity sha512-4pBePYfsI3W4p5d2bZsxjbJ7pQeEGqEMhqaEAxaYhWH1VyGrHZTSYb6wkewX6etgN82dLvKk0rweLLRWH01hWg==
 
-"@simonbackx/simple-errors@^1.3.0":
-  version "1.3.0"
-  resolved "https://registry.yarnpkg.com/@simonbackx/simple-errors/-/simple-errors-1.3.0.tgz#a2ffbcc942d5950e69fc620bb4a1c7215524a697"
-  integrity sha512-IHPCqWe42zO8Op5PWPMi5IewtlDwwwYfUjAmTjoNF0EAS8PDuKGm5wBLtObRpAgIce8WNRz3S0ZGJ2MCInDHvQ==
+"@simonbackx/simple-errors@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@simonbackx/simple-errors/-/simple-errors-1.4.0.tgz#a3c223835df34d641ebc628ea6e09f7929c742b4"
+  integrity sha512-mdZ7pVnsyl3jBPAYGXcjnsi4mCqPAhj6OjQqvtKaBp28AikuCETLXn4AAfaa0woSoyAslGStcIuoq8Se8U2YpQ==
+
+"@simonbackx/simple-logging@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@simonbackx/simple-logging/-/simple-logging-1.0.0.tgz#3835ebfc241d4ec137d93438d4d9b1dfeda47943"
+  integrity sha512-McUJH7xco76X5DzYHvAzOlS3/BJH5xZHgdMM3Y4380cK7eWG3Mfxelr7O4SH1eClftzkhjQlPuC7rpZnQg4c5g==
+  dependencies:
+    chalk "^4.1.2"
 
 "@sinonjs/commons@^1.7.0":
   version "1.8.0"
@@ -892,6 +899,11 @@
   version "14.0.23"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.0.23.tgz#676fa0883450ed9da0bb24156213636290892806"
   integrity sha512-Z4U8yDAl5TFkmYsZdFPdjeMa57NOvnaf1tljHzhouaPEp7LCj2JKkejpI1ODviIAQuW4CcQmxkQ77rnLsOOoKw==
+
+"@types/node@^18.11.17":
+  version "18.11.17"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.17.tgz#5c009e1d9c38f4a2a9d45c0b0c493fe6cdb4bcb5"
+  integrity sha512-HJSUJmni4BeDHhfzn6nF0sVmd1SMezP7/4F0Lq+aXzmp2xm9O7WXrUtHW/CHlYVtZUbByEvWidHqRtcJXGF2Ng==
 
 "@types/prettier@^2.1.5":
   version "2.3.2"
@@ -1365,7 +1377,7 @@ chalk@^2.0.0, chalk@^2.0.1:
     escape-string-regexp "^1.0.5"
     supports-color "^5.3.0"
 
-chalk@^4.0.0:
+chalk@^4.0.0, chalk@^4.1.2:
   version "4.1.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-4.1.2.tgz#aac4e2b7734a740867aeb16bf02aad556a1e7a01"
   integrity sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==
@@ -4052,10 +4064,10 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
-typescript@^4.4:
-  version "4.4.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.4.3.tgz#bdc5407caa2b109efd4f82fe130656f977a29324"
-  integrity sha512-4xfscpisVgqqDfPaJo5vkd+Qd/ItkoagnHpufr+i2QCHBsNYp+G7UAoyFl8aPtx879u38wPV65rZ8qbGZijalA==
+typescript@^4.9.4:
+  version "4.9.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.4.tgz#a2a3d2756c079abda241d75f149df9d561091e78"
+  integrity sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==
 
 union-value@^1.0.0:
   version "1.0.1"
@@ -4102,10 +4114,10 @@ util-deprecate@~1.0.1:
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=
 
-uuid@^8.3.2:
-  version "8.3.2"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
-  integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
+uuid@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-9.0.0.tgz#592f550650024a38ceb0c562f2f6aa435761efb5"
+  integrity sha512-MXcSTerfPa4uqyzStbRoTgt5XIe3x5+42+q1sDuy3R5MDk66URdLMOZe5aPX/SQd+kuYAh0FdP/pO28IkQyTeg==
 
 v8-compile-cache@^2.0.3:
   version "2.1.1"
