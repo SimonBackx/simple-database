@@ -27,7 +27,7 @@ export class Migration {
      * Given a folder, loop all the folders in that folder and run the migrations in the 'migrations' folder
      */
     static async runAll(folder: string): Promise<boolean> {
-        console.log("Running all migrations...")
+        process.stdout.write(colors.bold("Running all migrations... \n"));
         process.env.DB_MULTIPLE_STATEMENTS = "true";
 
         // First check if we have migrations table
@@ -89,13 +89,13 @@ export class Migration {
                 continue;
             }
 
-            process.stdout.write(colors.bold("Migration " + name));
+            process.stdout.write(colors.bold("Running migration " + name + "\n"));
             try {
                 await migration.up();
                 await MigrationModel.markAsExecuted(name);
-                process.stdout.write(": " + colors.green("OK") + "\n");
+                process.stdout.write(name + ": " + colors.green("OK") + "\n");
             } catch (e) {
-                process.stdout.write(": " + colors.red("FAILED") + "\n");
+                process.stdout.write(name + ": " + colors.red("FAILED") + "\n");
                 process.stderr.write(colors.bold.red("Error: " + e.message + "\n"));
                 return false;
             }

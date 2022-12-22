@@ -46,14 +46,14 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
      * @param namespaceB namespace in the SQL query of modelB
      */
     joinQuery(namespaceA: string, namespaceB: string): string {
-        return `LEFT JOIN ${this.modelB.table} as ${namespaceB} on ${namespaceB}.${this.foreignKey} = ${namespaceA}.${this.modelA.primary.name}\n`;
+        return `LEFT JOIN ${this.modelB.table} as ${namespaceB} on ${namespaceB}.${this.foreignKey.toString()} = ${namespaceA}.${this.modelA.primary.name}\n`;
     }
 
     orderByQuery(namespaceB: string): string {
         if (this.sortKey === undefined) {
             return "";
         }
-        let str = `\nORDER BY ${namespaceB}.${this.sortKey}`;
+        let str = `\nORDER BY ${namespaceB}.${this.sortKey.toString()}`;
         if (this.sortOrder == "DESC") {
             str += " DESC";
         }
@@ -64,7 +64,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
     async load(modelA: A, sorted = true, where?: object): Promise<B[]> {
         const namespaceB = "B";
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.modelB.table} as ${namespaceB}\n`;
-        str += `WHERE ${namespaceB}.${this.foreignKey} = ?`;
+        str += `WHERE ${namespaceB}.${this.foreignKey.toString()} = ?`;
 
         const params = [modelA.getPrimaryKey()];
         if (where) {
