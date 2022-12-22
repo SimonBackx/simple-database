@@ -2,7 +2,7 @@
     "name": "@simonbackx/simple-database",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "version": "1.22.2",
+    "version": "1.23.0",
     "scripts": {
         "test": "yarn build && jest",
         "build": "rm -rf ./dist && tsc -p . --declaration && mkdir -p ./dist/src/migrations && cp -a ./src/migrations/*.sql ./dist/src/migrations",
