@@ -15,8 +15,17 @@ export class Migration extends Model {
     @column({ type: "datetime" })
     executedOn: Date;
 
+    private static cleanFileName(file: string) {
+        // Replace .ts with .js, to avoid rerunning same file depending whether ts-node is used
+        file = file.replace(".ts", ".js");
+
+        return file;
+    }
+
     // Methods
     static async isExecuted(file: string): Promise<boolean> {
+        file = this.cleanFileName(file);
+
         const [rows] = await Database.select(`SELECT count(*) as c FROM ${this.table} WHERE \`file\` = ? LIMIT 1`, [
             file
         ]);
@@ -29,10 +38,11 @@ export class Migration extends Model {
         return rows[0][""]["c"] == 1;
     }
 
-    static async markAsExecuted(file: string) {
+    static async markAsExecuted(file: string): Promise<void> {
         if (await this.isExecuted(file)) {
             return;
         }
+        file = this.cleanFileName(file);
         const migration = new Migration();
         migration.file = file;
         migration.executedOn = new Date();
