@@ -14,7 +14,7 @@
     "vetur.validation.template": false,
     "vetur.format.enable": false,
     "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": true
+        "source.fixAll.eslint": "explicit"
     },
     "editor.formatOnPaste": true,
     "eslint.format.enable": true,
