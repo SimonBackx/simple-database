@@ -428,15 +428,6 @@ export class Model /* static implements RowInitiable<Model> */ {
     }
 
     /**
-     * Build your own select query, and cast the result to an arary of Model
-     */
-    static async select<T extends typeof Model>(this: T, query: string, params: any[], select?: string): Promise<InstanceType<T>[]> {
-        const q = (select ? select : `SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` `)+query;
-        const [rows] = await Database.select(q, params);
-        return this.fromRows(rows, this.table);
-    }
-
-    /**
      * Get multiple models by a simple where
      */
     static async all<T extends typeof Model>(this: T, limit?: number): Promise<InstanceType<T>[]> {
