@@ -1,4 +1,5 @@
-import { Decoder, encodeObject, ObjectData } from "@simonbackx/simple-encoding";
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
+import { Decoder, EncodableObject, encodeObject, ObjectData } from "@simonbackx/simple-encoding";
 
 import { ColumnType } from "../decorators/Column";
 
@@ -32,16 +33,19 @@ export class Column {
         this.name = name;
     }
 
-    saveProperty(data: any): any {
+    /**
+     * @deprecated use to instead
+     */
+    saveProperty(data: unknown): unknown {
         return this.to(data);
     }
 
-    isChanged(old: any, now: any): boolean {
-        return this.saveProperty(now) !== old;
+    isChanged(old: unknown, now: unknown): boolean {
+        return now !== old;
     }
 
     /// Convert from database to javascript
-    from(data: any): any {
+    from(data: unknown): unknown {
         if (this.beforeLoad) {
             data = this.beforeLoad(data);
         }
@@ -85,8 +89,12 @@ export class Column {
                 return data;
 
             case "json": {
+                if (typeof data !== 'string') {
+                    throw new Error("Expected string for JSON column");
+                }
+
                 // Mapped correctly by node MySQL
-                let parsed: any;
+                let parsed: unknown;
                 try {
                     parsed = JSON.parse(data);
                 } catch (e) {
@@ -96,17 +104,22 @@ export class Column {
                 }
 
                 if (this.decoder) {
-                    if (parsed.version === undefined && parsed.value === undefined) {
-                        // Fallback decoding without version (since we don't know the saved version)
-                        return this.decoder.decode(new ObjectData(parsed, { version: 0 }, this.name));
+                    if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'value' in parsed && typeof parsed.version === 'number') {
+                        return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version }, this.name));
                     }
-                    return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version }, this.name));
+                    
+                    // Fallback decoding without version (since we don't know the saved version)
+                    return this.decoder.decode(new ObjectData(parsed, { version: 0 }, this.name));
                 } else {
                     console.warn("It is recommended to always use a decoder for JSON columns");
                 }
 
+                if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'value' in parsed && typeof parsed.version === 'number') {
+                    return parsed.value;
+                }
+
                 // If data comes from before version encoding, fall back to parsed
-                return parsed.version !== undefined && parsed.value !== undefined ? parsed.value : parsed;
+                return parsed;
             }
 
             default: {
@@ -118,7 +131,7 @@ export class Column {
     }
 
     /// Convert to database from javascript
-    to(data: any): any {
+    to(data: unknown): unknown {
         if (this.nullable && data === null) {
             return null;
         }
@@ -154,7 +167,7 @@ export class Column {
 
                 return JSON.stringify({
                     version: version,
-                    value: encodeObject(data, { version }),
+                    value: encodeObject(data as EncodableObject, { version }),
                 });
             }
 

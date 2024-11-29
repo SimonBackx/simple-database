@@ -156,7 +156,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Load the returned properties from a DB response row into the model
      * If the row's primary key is null, undefined is returned
      */
-    static fromRow<T extends typeof Model>(this: T, row: any): InstanceType<T> | undefined {
+    static fromRow<T extends typeof Model>(this: T, row: Record<string, unknown>): InstanceType<T> | undefined {
         if (row === undefined || (this.primary && (row[this.primary.name] === null || row[this.primary.name] === undefined))) {
             return undefined;
         }
@@ -172,11 +172,11 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        model.markSaved();
+        model.markSaved(row);
         return model;
     }
 
-    static fromRows<T extends typeof Model>(this: T, rows: any[], namespace: string): InstanceType<T>[] {
+    static fromRows<T extends typeof Model>(this: T, rows: Record<string, Record<string, unknown>>[], namespace: string): InstanceType<T>[] {
         return rows.flatMap((row) => {
             const model = this.fromRow(row[namespace]);
             if (model) {
@@ -186,16 +186,16 @@ export class Model /* static implements RowInitiable<Model> */ {
         });
     }
 
-    private markSaved() {
+    private markSaved(fields?: Record<string, unknown>) {
         this.existsInDatabase = true;
 
         this.savedProperties.clear();
         this.forceSaveProperties.clear();
         
         for (const column of this.static.columns.values()) {
-            if (this[column.name] !== undefined) {
+            if ((fields ? fields[column.name] : this[column.name]) !== undefined) {
                 // If undefined: do not update, since we didn't save the value
-                this.savedProperties.set(column.name, column.saveProperty(this[column.name]));
+                this.savedProperties.set(column.name, fields ? fields[column.name] : column.to(this[column.name]));
             }
         }
 
@@ -381,6 +381,7 @@ export class Model /* static implements RowInitiable<Model> */ {
     }
 
     /**
+     * @deprecated Use the new SQL package instead
      * Get multiple models by a simple where
      */
     static async where<T extends typeof Model>(this: T, where: SQLWhereQuery, extra?: { 
@@ -446,20 +447,14 @@ export class Model /* static implements RowInitiable<Model> */ {
     /**
      * Return an object of all the properties that are changed and their database representation
      */
-    async getChangedDatabaseProperties(): Promise<{fields: object; skipUpdate: number}> {
-        const set = {};
+    getChangedDatabaseProperties(): {fields: Record<string, unknown>; skipUpdate: number} {
+        const set: Record<string, unknown> = {};
         let skipUpdate = 0
         
         for (const column of this.static.columns.values()) {
             // Run beforeSave
             if (column.beforeSave) {
-                const val = column.beforeSave.call(this, this[column.name]);
-                if (val && val.then) {
-                    this[column.name] = await (val as Promise<any>)
-                } else {
-                    // Skip causing an event-loop jump if not needed
-                    this[column.name] = val
-                }
+                this[column.name] = column.beforeSave.call(this, this[column.name]);
             }
 
             if (column.primary && column.type == "integer" && this.static.primary.name == "id") {
@@ -474,9 +469,10 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
 
             if (this[column.name] !== undefined) {
-                const forceSave = this.forceSaveProperties.has(column.name) 
-                if (forceSave || column.isChanged(this.savedProperties.get(column.name), this[column.name])) {
-                    set[column.name] = column.to(this[column.name]);
+                const forceSave = this.forceSaveProperties.has(column.name);
+                const saveValue = forceSave ? undefined : column.to(this[column.name]);
+                if (forceSave || column.isChanged(this.savedProperties.get(column.name), saveValue)) {
+                    set[column.name] = saveValue;
 
                     if (column.skipUpdate && !forceSave) {
                         skipUpdate++
@@ -539,7 +535,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        const { fields, skipUpdate } = await this.getChangedDatabaseProperties();
+        const { fields, skipUpdate } = this.getChangedDatabaseProperties();
 
         if (Object.keys(fields).length == 0) {
             if (Model.showWarnings) console.warn("Tried to update model without any properties modified");
@@ -562,6 +558,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             if (this.static.primary.type == "integer" && this.static.primary.name == "id") {
                 // Auto increment value
                 this[this.static.primary.name] = result.insertId;
+                fields[this.static.primary.name] = result.insertId; // Also mark saved
                 if (Model.debug) console.log(`New id = ${this[this.static.primary.name]}`);
             }
         } else {
@@ -574,7 +571,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         // Mark everything as saved
-        this.markSaved();
+        this.markSaved(fields);
         return true;
     }
 
