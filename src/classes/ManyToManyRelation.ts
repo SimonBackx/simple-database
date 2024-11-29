@@ -1,5 +1,5 @@
-import { Database } from "./Database";
-import { Model } from "./Model";
+import { Database } from './Database';
+import { Model } from './Model';
 
 export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model, Link extends Model | undefined = undefined> {
     modelA: { new (): A } & typeof Model;
@@ -15,16 +15,16 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      * Sort the loading of this relation
      */
     sortKey: string | undefined;
-    sortOrder: "ASC" | "DESC" = "ASC";
+    sortOrder: 'ASC' | 'DESC' = 'ASC';
 
     /**
      * E.g. _models_parents
      */
     get linkTable(): string {
         if (this.modelLink) {
-            return this.modelLink.table
+            return this.modelLink.table;
         }
-        return "_" + [this.modelA.table, this.modelB.table].sort().join("_");
+        return '_' + [this.modelA.table, this.modelB.table].sort().join('_');
     }
 
     /**
@@ -32,10 +32,10 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      */
     get linkKeyA(): string {
         return (
-            this.modelA.table +
-            this.modelA.primary.name.charAt(0).toUpperCase() +
-            this.modelA.primary.name.substring(1) +
-            ((this.modelA as any) === this.modelB ? "A" : "")
+            this.modelA.table
+            + this.modelA.primary.name.charAt(0).toUpperCase()
+            + this.modelA.primary.name.substring(1)
+            + ((this.modelA as any) === this.modelB ? 'A' : '')
         );
     }
 
@@ -44,10 +44,10 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
      */
     get linkKeyB(): string {
         return (
-            this.modelB.table +
-            this.modelB.primary.name.charAt(0).toUpperCase() +
-            this.modelB.primary.name.substring(1) +
-            ((this.modelA as any) === this.modelB ? "B" : "")
+            this.modelB.table
+            + this.modelB.primary.name.charAt(0).toUpperCase()
+            + this.modelB.primary.name.substring(1)
+            + ((this.modelA as any) === this.modelB ? 'B' : '')
         );
     }
 
@@ -55,14 +55,14 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         this.modelA = modelA;
         this.modelB = modelB;
         this.modelKey = modelKey;
-        this.modelLink = modelLink
+        this.modelLink = modelLink;
     }
 
     reverse<Key2 extends keyof any>(modelKey: Key2): ManyToManyRelation<Key2, B, A, Link> {
-        return new ManyToManyRelation<Key2, B, A, Link>(this.modelB, this.modelA, modelKey, this.modelLink)
+        return new ManyToManyRelation<Key2, B, A, Link>(this.modelB, this.modelA, modelKey, this.modelLink);
     }
 
-    setSort(key: string, order: "ASC" | "DESC" = "ASC"): this {
+    setSort(key: string, order: 'ASC' | 'DESC' = 'ASC'): this {
         this.sortKey = key;
         this.sortOrder = order;
         return this;
@@ -70,7 +70,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
 
     /// Generate a join query
     joinQuery(namespaceA: string, namespaceB: string): string {
-        const linkNamespace = namespaceA + "_" + namespaceB;
+        const linkNamespace = namespaceA + '_' + namespaceB;
         let str = `LEFT JOIN ${this.linkTable} as ${linkNamespace} on ${linkNamespace}.${this.linkKeyA} = ${namespaceA}.${this.modelA.primary.name}\n`;
         str += `LEFT JOIN ${this.modelB.table} as ${namespaceB} on ${linkNamespace}.${this.linkKeyB} = ${namespaceB}.${this.modelB.primary.name}`;
         return str;
@@ -78,24 +78,24 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
 
     orderByQuery(namespaceA: string, namespaceB: string): string {
         if (this.sortKey === undefined) {
-            return "";
+            return '';
         }
-        const linkNamespace = namespaceA + "_" + namespaceB;
+        const linkNamespace = namespaceA + '_' + namespaceB;
         let str = `\nORDER BY ${linkNamespace}.${this.sortKey}`;
-        if (this.sortOrder == "DESC") {
-            str += " DESC";
+        if (this.sortOrder == 'DESC') {
+            str += ' DESC';
         }
-        return str + "\n";
+        return str + '\n';
     }
 
     /// Load the relation of a model and return the loaded models
-    async load(modelA: A, sorted = true, where?: object, whereLink?: object): Promise<(B & { _link: Link})[]> {
-        const namespaceB = "B";
-        const linkNamespace = "A_B";
-        let select = this.modelB.getDefaultSelect(namespaceB)
+    async load(modelA: A, sorted = true, where?: object, whereLink?: object): Promise<(B & { _link: Link })[]> {
+        const namespaceB = 'B';
+        const linkNamespace = 'A_B';
+        let select = this.modelB.getDefaultSelect(namespaceB);
 
         if (this.modelLink) {
-            select += ", " + this.modelLink.getDefaultSelect(linkNamespace)
+            select += ', ' + this.modelLink.getDefaultSelect(linkNamespace);
         }
 
         let str = `SELECT ${select} FROM ${this.linkTable} as ${linkNamespace}\n`;
@@ -120,7 +120,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             }
         }
         if (sorted) {
-            str += this.orderByQuery("A", "B");
+            str += this.orderByQuery('A', 'B');
         }
 
         const [rows] = await Database.select(str, params);
@@ -132,16 +132,16 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
                 const model = this.modelLink.fromRow(row[linkNamespace]) as Link;
 
                 // Fin modelB
-                const modelB = modelsB.find((m) => m.getPrimaryKey() == row[linkNamespace][this.linkKeyB])
+                const modelB = modelsB.find(m => m.getPrimaryKey() == row[linkNamespace][this.linkKeyB]);
 
                 if (!modelB) {
-                    throw new Error("Unexpected linking")
+                    throw new Error('Unexpected linking');
                 }
 
                 // Save link
-                modelB._link = model
+                modelB._link = model;
             }
-        }   
+        }
 
         modelA.setManyRelation(this, modelsB);
         return modelsB;
@@ -159,7 +159,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         const [result] = await Database.update(str, [linkTableValues, modelA.getPrimaryKey(), modelB.getPrimaryKey()]);
         if (result.changedRows != 1) {
             // Todo: add option to fail silently
-            throw new Error("Failed to update link table. Check if combination exists");
+            throw new Error('Failed to update link table. Check if combination exists');
         }
     }
 
@@ -178,13 +178,13 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
                 if (linkTableValues.hasOwnProperty(property)) {
                     if (linkTableValues[property].length != modelsB.length) {
                         throw new Error(
-                            "Amount of link table values for key " +
-                                property +
-                                " (" +
-                                linkTableValues[property].length +
-                                ") are not equal to amount of models linked (" +
-                                modelsB.length +
-                                ")"
+                            'Amount of link table values for key '
+                            + property
+                            + ' ('
+                            + linkTableValues[property].length
+                            + ') are not equal to amount of models linked ('
+                            + modelsB.length
+                            + ')',
                         );
                     }
                 }
@@ -193,23 +193,24 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             const query = `INSERT INTO ${Database.escapeId(this.linkTable)} (
                     ${Database.escapeId(this.linkKeyA)}, 
                     ${Database.escapeId(this.linkKeyB)}, 
-                    ${linkTableKeys.map((k) => Database.escapeId(k)).join(", ")}
+                    ${linkTableKeys.map(k => Database.escapeId(k)).join(', ')}
                 ) VALUES ?`;
-            [result] = await Database.insert(query, [modelsB.map((modelB, i) => [modelA, modelB, ...linkTableKeys.map((k) => linkTableValues[k][i])])]);
-        } else {
+            [result] = await Database.insert(query, [modelsB.map((modelB, i) => [modelA, modelB, ...linkTableKeys.map(k => linkTableValues[k][i])])]);
+        }
+        else {
             const query = `INSERT INTO ${Database.escapeId(this.linkTable)} (
                     ${Database.escapeId(this.linkKeyA)}, 
                     ${Database.escapeId(this.linkKeyB)}
                 ) VALUES ?`;
-            [result] = await Database.insert(query, [modelsB.map((modelB) => [modelA, modelB])]);
+            [result] = await Database.insert(query, [modelsB.map(modelB => [modelA, modelB])]);
         }
         return result.affectedRows;
     }
 
-    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] } | Link[] ): Promise<void> {
+    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] } | Link[]): Promise<void> {
         const modelAId = modelA.getPrimaryKey();
         if (!modelAId) {
-            throw new Error("Cannot link if model is not saved yet");
+            throw new Error('Cannot link if model is not saved yet');
         }
 
         const affectedRows = await this.linkIds(
@@ -217,11 +218,11 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             modelsB.map((modelB) => {
                 const id = modelB.getPrimaryKey();
                 if (!id) {
-                    throw new Error("Cannot link to a model that is not saved yet");
+                    throw new Error('Cannot link to a model that is not saved yet');
                 }
                 return id;
             }),
-            linkTableValues
+            linkTableValues,
         );
 
         // If the relation is loaded, also modify the value of the relation
@@ -229,13 +230,14 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             if (affectedRows == modelsB.length) {
                 const arr: B[] = (modelA as any)[this.modelKey];
                 arr.push(...modelsB);
-            } else {
+            }
+            else {
                 // This could happen in race conditions and simultanious requests
 
-                console.warn("Warning: linking expected to affect " + modelsB.length + " rows, but only affected " + affectedRows + " rows");
+                console.warn('Warning: linking expected to affect ' + modelsB.length + ' rows, but only affected ' + affectedRows + ' rows');
 
                 // TODO: Manually correct by doing a query (safest)
-                throw new Error("Fallback behaviour net yet implemented");
+                throw new Error('Fallback behaviour net yet implemented');
             }
         }
     }
@@ -280,28 +282,29 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         // Arrays are turned into list, e.g. ['a', 'b'] turns into 'a', 'b'
         const [result] = await Database.delete(query, [modelA, modelsB]);
 
-        return result
+        return result;
     }
 
     async unlink(modelA: A, ...modelsB: B[]): Promise<void> {
-        const result = await this.unlinkIds(modelA.getPrimaryKey()!, ...modelsB.map((modelB) => modelB.getPrimaryKey()!))
+        const result = await this.unlinkIds(modelA.getPrimaryKey()!, ...modelsB.map(modelB => modelB.getPrimaryKey()!));
 
         if (this.isLoaded(modelA)) {
             if (result.affectedRows == modelsB.length) {
                 const arr: B[] = (modelA as any)[this.modelKey];
-                const idMap = modelsB.map((model) => model.getPrimaryKey());
+                const idMap = modelsB.map(model => model.getPrimaryKey());
                 modelA.setManyRelation(
                     this,
                     arr.filter((model) => {
                         return !idMap.includes(model.getPrimaryKey());
-                    })
+                    }),
                 );
-            } else {
+            }
+            else {
                 // This could happen in race conditions and simultanious requests
-                console.warn("Warning: unlinking expected to affect " + modelsB.length + " rows, but only affected " + result.affectedRows + " rows");
+                console.warn('Warning: unlinking expected to affect ' + modelsB.length + ' rows, but only affected ' + result.affectedRows + ' rows');
 
                 // TODO: Manually correct by doing a query (safest)
-                throw new Error("Fallback behaviour net yet implemented");
+                throw new Error('Fallback behaviour net yet implemented');
             }
         }
     }

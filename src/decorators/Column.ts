@@ -1,10 +1,10 @@
-import { Decoder } from "@simonbackx/simple-encoding";
+import { Decoder } from '@simonbackx/simple-encoding';
 
-import { Column } from "../classes/Column";
-import { ManyToOneRelation } from "../classes/ManyToOneRelation";
-import { Model } from "../classes/Model";
+import { Column } from '../classes/Column';
+import { ManyToOneRelation } from '../classes/ManyToOneRelation';
+import { Model } from '../classes/Model';
 
-export type ColumnType = "integer" | "number" | "string" | "date" | "datetime" | "boolean" | "json";
+export type ColumnType = 'integer' | 'number' | 'string' | 'date' | 'datetime' | 'boolean' | 'json';
 
 export function column<Key extends keyof any, Value extends Model>(settings: {
     type: ColumnType;
@@ -47,11 +47,11 @@ export function column<Key extends keyof any, Value extends Model>(settings: {
         }
 
         if (settings.skipUpdate !== undefined) {
-            column.skipUpdate = settings.skipUpdate
+            column.skipUpdate = settings.skipUpdate;
         }
         if (settings.primary) {
             if (target.constructor.primary) {
-                throw new Error("Duplicate primary column " + key);
+                throw new Error('Duplicate primary column ' + key);
             }
             target.constructor.primary = column;
             column.primary = true;

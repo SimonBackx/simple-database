@@ -1,5 +1,5 @@
-import { Database } from "./Database";
-import { Model } from "./Model";
+import { Database } from './Database';
+import { Model } from './Model';
 
 export class OneToManyRelation<Key extends keyof any, A extends Model, B extends Model> {
     modelA: { new (): A } & typeof Model;
@@ -19,7 +19,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
      * Sort the loading of this relation
      */
     sortKey: keyof B | undefined;
-    sortOrder: "ASC" | "DESC" = "ASC";
+    sortOrder: 'ASC' | 'DESC' = 'ASC';
 
     constructor(modelA: { new (): A } & typeof Model, modelB: { new (): B } & typeof Model, modelKey: Key, foreignKey: keyof B) {
         this.modelA = modelA;
@@ -28,7 +28,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
         this.foreignKey = foreignKey;
     }
 
-    setSort(key: keyof B, order: "ASC" | "DESC" = "ASC"): this {
+    setSort(key: keyof B, order: 'ASC' | 'DESC' = 'ASC'): this {
         this.sortKey = key;
         this.sortOrder = order;
         return this;
@@ -51,18 +51,18 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
 
     orderByQuery(namespaceB: string): string {
         if (this.sortKey === undefined) {
-            return "";
+            return '';
         }
         let str = `\nORDER BY ${namespaceB}.${this.sortKey.toString()}`;
-        if (this.sortOrder == "DESC") {
-            str += " DESC";
+        if (this.sortOrder == 'DESC') {
+            str += ' DESC';
         }
-        return str + "\n";
+        return str + '\n';
     }
 
     /// Load the relation of a model and return the loaded models
     async load(modelA: A, sorted = true, where?: object): Promise<B[]> {
-        const namespaceB = "B";
+        const namespaceB = 'B';
         let str = `SELECT ${this.modelB.getDefaultSelect(namespaceB)} FROM ${this.modelB.table} as ${namespaceB}\n`;
         str += `WHERE ${namespaceB}.${this.foreignKey.toString()} = ?`;
 
@@ -76,7 +76,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
             }
         }
         if (sorted) {
-            str += this.orderByQuery("B");
+            str += this.orderByQuery('B');
         }
 
         const [rows] = await Database.select(str, params);

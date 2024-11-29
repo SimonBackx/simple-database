@@ -1,4 +1,4 @@
-import { Database } from "../src/classes/Database";
+import { Database } from '../src/classes/Database';
 
 console.log = jest.fn();
 afterAll(async () => {

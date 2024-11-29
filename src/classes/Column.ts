@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
-import { Decoder, EncodableObject, encodeObject, ObjectData } from "@simonbackx/simple-encoding";
+import { Decoder, EncodableObject, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
 
-import { ColumnType } from "../decorators/Column";
+import { ColumnType } from '../decorators/Column';
 
 export class Column {
     type: ColumnType;
@@ -53,51 +52,52 @@ export class Column {
             return null;
         }
         if (!this.nullable && data === null) {
-            throw new Error("Received null value from database. Expected a non-nullable value for " + this.name);
+            throw new Error('Received null value from database. Expected a non-nullable value for ' + this.name);
         }
         switch (this.type) {
-            case "integer":
+            case 'integer':
                 // Mapped correctly by MySQL
                 if (!Number.isInteger(data)) {
-                    throw new Error("Expected integer");
+                    throw new Error('Expected integer');
                 }
                 return data;
 
-            case "number":
+            case 'number':
                 // Mapped correctly by MySQL
                 if (Number.isNaN(data)) {
-                    throw new Error("Expected number");
+                    throw new Error('Expected number');
                 }
                 return data;
 
-            case "string":
+            case 'string':
                 return data;
 
-            case "boolean":
+            case 'boolean':
                 // Mapped correctly by MySQL
                 if (data !== 1 && data !== 0) {
-                    throw new Error("Expected boolean");
+                    throw new Error('Expected boolean');
                 }
                 return data === 1;
 
-            case "date":
+            case 'date':
                 // Correctly mapped by node MySQL
                 return data;
 
-            case "datetime":
+            case 'datetime':
                 // Mapped correctly by node MySQL
                 return data;
 
-            case "json": {
+            case 'json': {
                 if (typeof data !== 'string') {
-                    throw new Error("Expected string for JSON column");
+                    throw new Error('Expected string for JSON column');
                 }
 
                 // Mapped correctly by node MySQL
                 let parsed: unknown;
                 try {
                     parsed = JSON.parse(data);
-                } catch (e) {
+                }
+                catch (e) {
                     // Syntax error. Mark this in the future.
                     console.error(e);
                     parsed = {};
@@ -107,11 +107,12 @@ export class Column {
                     if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'value' in parsed && typeof parsed.version === 'number') {
                         return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version }, this.name));
                     }
-                    
+
                     // Fallback decoding without version (since we don't know the saved version)
                     return this.decoder.decode(new ObjectData(parsed, { version: 0 }, this.name));
-                } else {
-                    console.warn("It is recommended to always use a decoder for JSON columns");
+                }
+                else {
+                    console.warn('It is recommended to always use a decoder for JSON columns');
                 }
 
                 if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'value' in parsed && typeof parsed.version === 'number') {
@@ -125,7 +126,7 @@ export class Column {
             default: {
                 // If we get a compile error heres, a type is missing in the switch
                 const t: never = this.type;
-                throw new Error("Type " + t + " not supported");
+                throw new Error('Type ' + t + ' not supported');
             }
         }
     }
@@ -136,33 +137,33 @@ export class Column {
             return null;
         }
         if (!this.nullable && data === null) {
-            throw new Error("Tried to set null to non-nullable value. Expected a non-nullable value");
+            throw new Error('Tried to set null to non-nullable value. Expected a non-nullable value');
         }
 
         switch (this.type) {
-            case "integer":
+            case 'integer':
                 // Mapped correctly by MySQL
                 return data;
 
-            case "number":
+            case 'number':
                 // Mapped correctly by node MySQL
                 return data;
 
-            case "string":
+            case 'string':
                 return data;
 
-            case "boolean":
+            case 'boolean':
                 return data ? 1 : 0;
 
-            case "date":
+            case 'date':
                 // Correctly mapped by node MySQL
                 return data;
 
-            case "datetime":
+            case 'datetime':
                 // Mapped correctly by node MySQL
                 return data;
 
-            case "json": {
+            case 'json': {
                 const version = Column.jsonVersion;
 
                 return JSON.stringify({
@@ -174,7 +175,7 @@ export class Column {
             default: {
                 // If we get a compile error heres, a type is missing in the switch
                 const t: never = this.type;
-                throw new Error("Type " + t + " not supported");
+                throw new Error('Type ' + t + ' not supported');
             }
         }
     }

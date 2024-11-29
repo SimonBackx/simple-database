@@ -1,23 +1,23 @@
-import { Database } from "../classes/Database";
-import { Model } from "../classes/Model";
-import { column } from "../decorators/Column";
+import { Database } from '../classes/Database';
+import { Model } from '../classes/Model';
+import { column } from '../decorators/Column';
 
 export class Migration extends Model {
-    static table = "migrations";
+    static table = 'migrations';
 
     // Columns
-    @column({ primary: true, type: "integer" })
+    @column({ primary: true, type: 'integer' })
     id: number | null = null;
 
-    @column({ type: "string" })
+    @column({ type: 'string' })
     file: string;
 
-    @column({ type: "datetime" })
+    @column({ type: 'datetime' })
     executedOn: Date;
 
     private static cleanFileName(file: string) {
         // Replace .ts with .js, to avoid rerunning same file depending whether ts-node is used
-        file = file.replace(".ts", ".js");
+        file = file.replace('.ts', '.js');
 
         return file;
     }
@@ -27,7 +27,7 @@ export class Migration extends Model {
         file = this.cleanFileName(file);
 
         const [rows] = await Database.select(`SELECT count(*) as c FROM ${this.table} WHERE \`file\` = ? LIMIT 1`, [
-            file
+            file,
         ]);
 
         if (rows.length == 0) {
@@ -35,7 +35,7 @@ export class Migration extends Model {
         }
 
         // Read member + address from first row
-        return rows[0][""]["c"] == 1;
+        return rows[0]['']['c'] == 1;
     }
 
     static async markAsExecuted(file: string): Promise<void> {

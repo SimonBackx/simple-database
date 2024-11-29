@@ -1,6 +1,6 @@
-import BoyNames from "./data/boys";
-import FamilyNames from "./data/family-names";
-import GirlNames from "./data/girls";
+import BoyNames from './data/boys';
+import FamilyNames from './data/family-names';
+import GirlNames from './data/girls';
 
 export abstract class Factory<Options, Model> {
     options: Options;
@@ -19,8 +19,8 @@ export abstract class Factory<Options, Model> {
     }
 
     randomString(length: number): string {
-        let result = "";
-        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const charactersLength = characters.length;
         for (let i = 0; i < length; i++) {
             result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -28,16 +28,16 @@ export abstract class Factory<Options, Model> {
         return result;
     }
 
-    randomFirstName(gender: "Male" | "Female" | "Other"): string {
+    randomFirstName(gender: 'Male' | 'Female' | 'Other'): string {
         let names: string[];
         switch (gender) {
-            case "Male":
+            case 'Male':
                 names = BoyNames;
                 break;
-            case "Female":
+            case 'Female':
                 names = GirlNames;
                 break;
-            case "Other":
+            case 'Other':
                 names = [...BoyNames, ...GirlNames];
                 break;
         }
