@@ -36,7 +36,7 @@ export class ManyToOneRelation<Key extends keyof any, M extends Model> {
 
     /// Load the relation of a list of models
     async load<A extends Model>(modelsA: A[]): Promise<(A & Record<Key, M>)[]> {
-        if (modelsA.length == 0) {
+        if (modelsA.length === 0) {
             return [];
         }
         let str = `SELECT ${this.model.getDefaultSelect()} FROM ${this.model.table}\n`;

@@ -6,7 +6,7 @@ import { logger, StyledText } from '@simonbackx/simple-logging';
 
 type MigrationFunction = () => Promise<void>;
 
-async function directoryExists(filePath): Promise<boolean> {
+async function directoryExists(filePath: string): Promise<boolean> {
     try {
         return (await fs.stat(filePath)).isDirectory();
     }
@@ -31,7 +31,7 @@ export class Migration {
         const dirname = __dirname;
 
         // Get the current working directory by removing shared part of folder and dirname
-        const shared = dirname.split('/').filter((part, index) => part == folder.split('/')[index]).join('/');
+        const shared = dirname.split('/').filter((part, index) => part === folder.split('/')[index]).join('/');
         const cwd = folder.replace(shared, '');
 
         logger.log(
@@ -60,7 +60,7 @@ export class Migration {
         const migrations: [string, string][] = [];
 
         for (const part of parts) {
-            if (part == '*') {
+            if (part === '*') {
                 const newQueue: string[] = [];
                 for (folder of folderQueue) {
                     // Read all directories

@@ -82,7 +82,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
         const linkNamespace = namespaceA + '_' + namespaceB;
         let str = `\nORDER BY ${linkNamespace}.${this.sortKey}`;
-        if (this.sortOrder == 'DESC') {
+        if (this.sortOrder === 'DESC') {
             str += ' DESC';
         }
         return str + '\n';
@@ -105,17 +105,17 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         const params = [modelA.getPrimaryKey()];
         if (where) {
             for (const key in where) {
-                if (where.hasOwnProperty(key)) {
+                if (Object.hasOwnProperty.call(where, key)) {
                     str += ` AND ${namespaceB}.\`${key}\` = ?`;
-                    params.push(where[key]);
+                    params.push(where[key] as string);
                 }
             }
         }
         if (whereLink) {
             for (const key in whereLink) {
-                if (whereLink.hasOwnProperty(key)) {
+                if (Object.hasOwnProperty.call(whereLink, key)) {
                     str += ` AND ${linkNamespace}.\`${key}\` = ?`;
-                    params.push(whereLink[key]);
+                    params.push(whereLink[key] as string);
                 }
             }
         }
@@ -132,7 +132,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
                 const model = this.modelLink.fromRow(row[linkNamespace]) as Link;
 
                 // Fin modelB
-                const modelB = modelsB.find(m => m.getPrimaryKey() == row[linkNamespace][this.linkKeyB]);
+                const modelB = modelsB.find(m => m.getPrimaryKey() === row[linkNamespace][this.linkKeyB]);
 
                 if (!modelB) {
                     throw new Error('Unexpected linking');
@@ -157,14 +157,14 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         const str = `UPDATE ${this.linkTable} SET ? WHERE ${Database.escapeId(this.linkKeyA)} = ? AND ${Database.escapeId(this.linkKeyB)} = ?`;
 
         const [result] = await Database.update(str, [linkTableValues, modelA.getPrimaryKey(), modelB.getPrimaryKey()]);
-        if (result.changedRows != 1) {
+        if (result.changedRows !== 1) {
             // Todo: add option to fail silently
             throw new Error('Failed to update link table. Check if combination exists');
         }
     }
 
     async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] } | Link[]): Promise<number> {
-        if (modelsB.length == 0) {
+        if (modelsB.length === 0) {
             return 0;
         }
         // Nested arrays are turned into grouped lists (for bulk inserts), e.g. [['a', 'b'], ['c', 'd']] turns into ('a', 'b'), ('c', 'd')
@@ -175,8 +175,8 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
             const linkTableKeys: string[] = Object.keys(linkTableValues);
 
             for (const property in linkTableValues) {
-                if (linkTableValues.hasOwnProperty(property)) {
-                    if (linkTableValues[property].length != modelsB.length) {
+                if (Object.hasOwnProperty.call(linkTableValues, property)) {
+                    if (linkTableValues[property].length !== modelsB.length) {
                         throw new Error(
                             'Amount of link table values for key '
                             + property
@@ -227,7 +227,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
 
         // If the relation is loaded, also modify the value of the relation
         if (this.isLoaded(modelA)) {
-            if (affectedRows == modelsB.length) {
+            if (affectedRows === modelsB.length) {
                 const arr: B[] = (modelA as any)[this.modelKey];
                 arr.push(...modelsB);
             }
@@ -252,7 +252,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         // Arrays are turned into list, e.g. ['a', 'b'] turns into 'a', 'b'
         const [result] = await Database.delete(query, [modelA]);
 
-        if (result.affectedRows == 0 && Model.debug) {
+        if (result.affectedRows === 0 && Model.debug) {
             console.warn("Cleared many to many relation, but didn't deleted any entries");
         }
     }
@@ -289,7 +289,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         const result = await this.unlinkIds(modelA.getPrimaryKey()!, ...modelsB.map(modelB => modelB.getPrimaryKey()!));
 
         if (this.isLoaded(modelA)) {
-            if (result.affectedRows == modelsB.length) {
+            if (result.affectedRows === modelsB.length) {
                 const arr: B[] = (modelA as any)[this.modelKey];
                 const idMap = modelsB.map(model => model.getPrimaryKey());
                 modelA.setManyRelation(

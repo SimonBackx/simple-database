@@ -54,7 +54,7 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
             return '';
         }
         let str = `\nORDER BY ${namespaceB}.${this.sortKey.toString()}`;
-        if (this.sortOrder == 'DESC') {
+        if (this.sortOrder === 'DESC') {
             str += ' DESC';
         }
         return str + '\n';
@@ -69,9 +69,9 @@ export class OneToManyRelation<Key extends keyof any, A extends Model, B extends
         const params = [modelA.getPrimaryKey()];
         if (where) {
             for (const key in where) {
-                if (where.hasOwnProperty(key)) {
+                if (Object.hasOwnProperty.call(where, key)) {
                     str += ` AND ${namespaceB}.\`${key}\` = ?`;
-                    params.push(where[key]);
+                    params.push(where[key] as string);
                 }
             }
         }

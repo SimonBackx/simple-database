@@ -30,12 +30,12 @@ export class Migration extends Model {
             file,
         ]);
 
-        if (rows.length == 0) {
+        if (rows.length === 0) {
             return false;
         }
 
         // Read member + address from first row
-        return rows[0]['']['c'] == 1;
+        return rows[0]['']['c'] === 1;
     }
 
     static async markAsExecuted(file: string): Promise<void> {

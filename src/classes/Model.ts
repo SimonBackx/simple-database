@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Column } from './Column';
 import { Database } from './Database';
 import { ManyToManyRelation } from './ManyToManyRelation';
@@ -77,7 +78,7 @@ export class Model /* static implements RowInitiable<Model> */ {
     static selectColumnsWithout(namespace: string = this.table, ...exclude: string[]): string {
         const properties = Array.from(this.columns.keys()).flatMap(name => (exclude.includes(name) ? [] : [name]));
 
-        if (properties.length == 0) {
+        if (properties.length === 0) {
             // todo: check what to do in this case.
             throw new Error('Not implemented yet');
         }
@@ -229,7 +230,7 @@ export class Model /* static implements RowInitiable<Model> */ {
     static async getByID<T extends typeof Model>(this: T, id: number | string): Promise<InstanceType<T> | undefined> {
         const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE \`${this.primary.name}\` = ? LIMIT 1`, [id]);
 
-        if (rows.length == 0) {
+        if (rows.length === 0) {
             return undefined;
         }
 
@@ -242,7 +243,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * @param ids primary key of the models you want to fetch
      */
     static async getByIDs<T extends typeof Model>(this: T, ...ids: (number | string)[]): Promise<InstanceType<T>[]> {
-        if (ids.length == 0) {
+        if (ids.length === 0) {
             return [];
         }
         const [rows] = await Database.select(`SELECT ${this.getDefaultSelect()} FROM \`${this.table}\` WHERE \`${this.primary.name}\` IN (?) LIMIT ?`, [
@@ -326,7 +327,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 }
                 if (value.value.includes(null)) {
                     const filtered = (value.value as (string | number | null)[]).filter(v => v !== null);
-                    if (filtered.length == 0) {
+                    if (filtered.length === 0) {
                         whereQuery = (`\`${this.table}\`.\`${key}\` IS NULL`);
                     }
                     else if (filtered.length === 1) {
@@ -359,7 +360,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         const params: any[] = [];
 
         for (const key in where) {
-            if (where.hasOwnProperty(key)) {
+            if (Object.hasOwnProperty.call(where, key)) {
                 const value = where[key];
                 if (Array.isArray(value)) {
                     for (const v of value) {
@@ -467,7 +468,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 this[column.name] = column.beforeSave.call(this, this[column.name]);
             }
 
-            if (column.primary && column.type == 'integer' && this.static.primary.name == 'id') {
+            if (column.primary && column.type === 'integer' && this.static.primary.name === 'id') {
                 // Auto increment: not allowed to set
                 continue;
             }
@@ -540,7 +541,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
         else {
-            if (!this.existsInDatabase && this.static.primary.type == 'integer' && this.static.primary.name == 'id') {
+            if (!this.existsInDatabase && this.static.primary.type === 'integer' && this.static.primary.name === 'id') {
                 throw new Error(
                     `PrimaryKey was set programmatically without fetching the model ${this.constructor.name} from the database. This is not allowed for integer primary keys.`,
                 );
@@ -549,7 +550,7 @@ export class Model /* static implements RowInitiable<Model> */ {
 
         const { fields, skipUpdate } = this.getChangedDatabaseProperties();
 
-        if (Object.keys(fields).length == 0) {
+        if (Object.keys(fields).length === 0) {
             if (Model.showWarnings) console.warn('Tried to update model without any properties modified');
             return false;
         }
@@ -567,7 +568,7 @@ export class Model /* static implements RowInitiable<Model> */ {
 
             const [result] = await Database.insert('INSERT INTO `' + this.static.table + '` SET ?', [fields]);
 
-            if (this.static.primary.type == 'integer' && this.static.primary.name == 'id') {
+            if (this.static.primary.type === 'integer' && this.static.primary.name === 'id') {
                 // Auto increment value
                 this[this.static.primary.name] = result.insertId;
                 fields[this.static.primary.name] = result.insertId; // Also mark saved
@@ -578,7 +579,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             if (Model.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
             const [result] = await Database.update('UPDATE `' + this.static.table + '` SET ? WHERE `' + this.static.primary.name + '` = ?', [fields, id]);
-            if (result.changedRows != 1 && Model.showWarnings) {
+            if (result.changedRows !== 1 && Model.showWarnings) {
                 console.warn(`Updated ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
             }
         }
@@ -602,12 +603,12 @@ export class Model /* static implements RowInitiable<Model> */ {
         if (Model.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
         const [result] = await Database.delete('DELETE FROM `' + this.static.table + '` WHERE `' + this.static.primary.name + '` = ?', [id]);
-        if (result.affectedRows != 1 && Model.showWarnings) {
+        if (result.affectedRows !== 1 && Model.showWarnings) {
             console.warn(`Deleted ${this.constructor.name}, but it didn't change a row. Check if ID exists.`);
         }
 
         this.existsInDatabase = false;
-        if (this.static.primary.type == 'integer' && this.static.primary.name == 'id') {
+        if (this.static.primary.type === 'integer' && this.static.primary.name === 'id') {
             this.eraseProperty(this.static.primary.name);
         }
         this.savedProperties.clear();

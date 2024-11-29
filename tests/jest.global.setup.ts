@@ -1,4 +1,7 @@
-require('dotenv').config();
+// First dotenv
+import 'dotenv/config';
+
+// Continue
 import { Database } from '../src/classes/Database';
 
 export default async () => {

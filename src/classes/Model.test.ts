@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable jest/no-conditional-expect */
 import { Data, Encodeable } from '@simonbackx/simple-encoding';
 import { EncodeContext } from '@simonbackx/simple-encoding/dist/src/classes/EncodeContext';
 
@@ -16,7 +18,7 @@ describe('Model', () => {
             this.id = id;
         }
 
-        encode(context: EncodeContext) {
+        encode(_: EncodeContext) {
             return {
                 id: this.id,
             };
@@ -657,13 +659,13 @@ describe('Model', () => {
         expect(friends.map(f => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
 
         expect(friends[0]._link).toMatchObject({
-            priority: friends[0].id == friend2.id ? 20 : 10,
+            priority: friends[0].id === friend2.id ? 20 : 10,
             testModelsIdA: meWithFriends.id,
             testModelsIdB: friends[0].id,
         });
 
         expect(friends[1]._link).toMatchObject({
-            priority: friends[1].id == friend2.id ? 20 : 10,
+            priority: friends[1].id === friend2.id ? 20 : 10,
             testModelsIdA: meWithFriends.id,
             testModelsIdB: friends[1].id,
         });

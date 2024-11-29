@@ -1,4 +1,7 @@
-require('dotenv').config();
+// First dotenv
+import 'dotenv/config';
+
+// Continue
 import { Migration } from './src/classes/Migration';
 
 const start = async () => {
