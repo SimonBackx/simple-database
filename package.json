@@ -7,7 +7,7 @@
         "test": "yarn build && jest",
         "build": "rm -rf ./dist && tsc -p . --declaration && mkdir -p ./dist/src/migrations && cp -a ./src/migrations/*.sql ./dist/src/migrations",
         "migrations": "yarn build && tsc -p . --declaration && mkdir -p ./dist/src/migrations && cp -a ./src/test-migrations/*.sql ./dist/src/migrations && node ./dist/migrations.js",
-        "lint": "eslint . --ext .js,.ts"
+        "lint": "eslint"
     },
     "files": [
         "dist"
@@ -18,7 +18,7 @@
         "mysql": "^2.18.1"
     },
     "peerDependencies": {
-        "@simonbackx/simple-encoding": "^2.8.1",
+        "@simonbackx/simple-encoding": "*",
         "mysql": "^2.18.1"
     },
     "devDependencies": {
@@ -27,12 +27,8 @@
         "@types/jest": "^27.0.1",
         "@types/mysql": "^2.15.20",
         "@types/node": "^18.11.17",
-        "@typescript-eslint/eslint-plugin": "^4.31.0",
-        "@typescript-eslint/parser": "^4.31.0",
         "dotenv": "^10.0.0",
-        "eslint": "^7.32.0",
-        "eslint-plugin-jest": "^24.4.0",
-        "eslint-plugin-simple-import-sort": "^7.0.0",
+        "eslint-plugin-stamhoofd": "^2.58.0",
         "jest": "^27.1.1",
         "jest-extended": "^0.11.5",
         "typescript": "^4.9.4",
