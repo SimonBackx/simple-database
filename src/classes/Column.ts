@@ -1,7 +1,8 @@
-import { Decoder, EncodableObject, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
+import { Decoder, EncodableObject, encodeObject, ObjectData, PlainObject } from '@simonbackx/simple-encoding';
 
 import { ColumnType } from '../decorators/Column';
 
+export type DatabaseStoredValue = string | number | Date | null;
 export class Column {
     type: ColumnType;
     name: string;
@@ -35,16 +36,22 @@ export class Column {
     /**
      * @deprecated use to instead
      */
-    saveProperty(data: unknown): unknown {
+    saveProperty(data: unknown): DatabaseStoredValue {
         return this.to(data);
     }
 
-    isChanged(old: unknown, now: unknown): boolean {
+    isChanged(old: DatabaseStoredValue, now: DatabaseStoredValue): boolean {
+        if (old instanceof Date) {
+            if (now instanceof Date) {
+                return old.getTime() !== now.getTime();
+            }
+            return true;
+        }
         return now !== old;
     }
 
     /// Convert from database to javascript
-    from(data: unknown): unknown {
+    from(data: DatabaseStoredValue): unknown {
         if (this.beforeLoad) {
             data = this.beforeLoad(data);
         }
@@ -132,7 +139,7 @@ export class Column {
     }
 
     /// Convert to database from javascript
-    to(data: unknown): unknown {
+    to(data: unknown): DatabaseStoredValue {
         if (this.nullable && data === null) {
             return null;
         }
@@ -143,32 +150,53 @@ export class Column {
         switch (this.type) {
             case 'integer':
                 // Mapped correctly by MySQL
+                if (typeof data !== 'number') {
+                    throw new Error('Expected integer for ' + this.name + ', received ' + (typeof data));
+                }
+
                 return data;
 
             case 'number':
+                if (typeof data !== 'number') {
+                    throw new Error('Expected number for ' + this.name + ', received ' + (typeof data));
+                }
+
                 // Mapped correctly by node MySQL
                 return data;
 
             case 'string':
+                if (typeof data !== 'string') {
+                    throw new Error('Expected string for ' + this.name + ', received ' + (typeof data));
+                }
+
                 return data;
 
             case 'boolean':
+                if (typeof data !== 'boolean') {
+                    throw new Error('Expected boolean for ' + this.name + ', received ' + (typeof data));
+                }
+
                 return data ? 1 : 0;
 
             case 'date':
-                // Correctly mapped by node MySQL
-                return data;
-
             case 'datetime':
-                // Mapped correctly by node MySQL
+                if (!(data instanceof Date)) {
+                    throw new Error('Expected Date for ' + this.name + ', received ' + (typeof data));
+                }
+                // This information cannot be stored in the database - so also update it in JS to keep it in sync
+                data.setMilliseconds(0);
+
+                // Correctly mapped by node MySQL
                 return data;
 
             case 'json': {
                 const version = Column.jsonVersion;
 
                 return JSON.stringify({
-                    version: version,
+                    // Warning: keys should be sorted or they will get marked as changed every time
                     value: encodeObject(data as EncodableObject, { version }),
+                    version: version,
+
                 });
             }
 

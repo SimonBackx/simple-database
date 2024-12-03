@@ -1,6 +1,7 @@
 import fs from 'fs';
 import mysql from 'mysql';
-export type SQLResultRow = Record<string, unknown>;
+import { DatabaseStoredValue } from './Column';
+export type SQLResultRow = Record<string, DatabaseStoredValue>;
 export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
 
 type SelectOptions = { connection?: mysql.PoolConnection; nestTables?: boolean };

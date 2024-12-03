@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Column } from './Column';
+import { Column, DatabaseStoredValue } from './Column';
 import { Database } from './Database';
 import { ManyToManyRelation } from './ManyToManyRelation';
 import { ManyToOneRelation } from './ManyToOneRelation';
@@ -8,8 +8,62 @@ import { OneToManyRelation } from './OneToManyRelation';
 type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string };
 type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] };
 
+type Listener<Value> = (value: Value) => Promise<void> | void;
+
+/**
+ * Controls the fetching and decrypting of members
+ */
+export class ModelEventBus<Value> {
+    protected listeners: Map<any, { listener: Listener<Value> }[]> = new Map();
+
+    addListener(owner: any, listener: Listener<Value>) {
+        const existing = this.listeners.get(owner);
+        if (existing) {
+            existing.push({ listener });
+        }
+        else {
+            this.listeners.set(owner, [{ listener }]);
+        }
+    }
+
+    removeListener(owner: any) {
+        this.listeners.delete(owner);
+    }
+
+    async sendEvent(value: Value) {
+        const values: (Promise<void> | void)[] = [];
+        for (const owner of this.listeners.values()) {
+            for (const listener of owner) {
+                values.push(listener.listener(value));
+            }
+        }
+        return await Promise.all(values);
+    }
+}
+
+export type ModelEventType = 'created' | 'updated' | 'deleted';
+
+export type ModelEvent<M extends Model = Model> = {
+    type: 'created';
+    model: M;
+} | {
+    type: 'updated';
+    model: M;
+    changedFields: Record<string, DatabaseStoredValue>;
+    originalFields: Record<string, DatabaseStoredValue>;
+
+    /**
+     * Use this method to compare changes
+     */
+    getOldModel(): M;
+} | {
+    type: 'deleted';
+    model: M;
+};
+
 export class Model /* static implements RowInitiable<Model> */ {
     static primary: Column;
+    static modelEventBus = new ModelEventBus<ModelEvent>();
 
     /**
      * Properties that are stored in the table (including foreign keys, but without mapped relations!)
@@ -22,7 +76,7 @@ export class Model /* static implements RowInitiable<Model> */ {
 
     existsInDatabase = false;
 
-    private savedProperties = new Map<string, any>();
+    private savedProperties = new Map<string, DatabaseStoredValue>();
 
     /**
      * Sometimes we have skipUpdate properties that still should get saved on specific occasions.
@@ -64,7 +118,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Mark all properties as changed, so they will get updated on the next save
      */
     markAllChanged() {
-        this.savedProperties = new Map<string, any>();
+        this.savedProperties.clear();
     }
 
     /**
@@ -157,7 +211,7 @@ export class Model /* static implements RowInitiable<Model> */ {
      * Load the returned properties from a DB response row into the model
      * If the row's primary key is null, undefined is returned
      */
-    static fromRow<T extends typeof Model>(this: T, row: Record<string, unknown>): InstanceType<T> | undefined {
+    static fromRow<T extends typeof Model>(this: T, row: Record<string, DatabaseStoredValue>): InstanceType<T> | undefined {
         if (row === undefined || (this.primary && (row[this.primary.name] === null || row[this.primary.name] === undefined))) {
             return undefined;
         }
@@ -174,11 +228,11 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        model.markSaved(row);
+        model.markSaved(); // note: we don't pass row because that value is unreliable for json values (mysql performs sorting and other opertions on keys)
         return model;
     }
 
-    static fromRows<T extends typeof Model>(this: T, rows: Record<string, Record<string, unknown>>[], namespace: string): InstanceType<T>[] {
+    static fromRows<T extends typeof Model>(this: T, rows: Record<string, Record<string, DatabaseStoredValue>>[], namespace: string): InstanceType<T>[] {
         return rows.flatMap((row) => {
             const model = this.fromRow(row[namespace]);
             if (model) {
@@ -188,10 +242,8 @@ export class Model /* static implements RowInitiable<Model> */ {
         });
     }
 
-    private markSaved(fields?: Record<string, unknown>) {
+    private markSaved(fields?: Record<string, DatabaseStoredValue>) {
         this.existsInDatabase = true;
-
-        this.savedProperties.clear();
         this.forceSaveProperties.clear();
 
         for (const column of this.static.columns.values()) {
@@ -235,7 +287,8 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         // Read member + address from first row
-        return this.fromRow(rows[0][this.table]);
+        const row = rows[0][this.table];
+        return this.fromRow(row);
     }
 
     /**
@@ -458,8 +511,8 @@ export class Model /* static implements RowInitiable<Model> */ {
     /**
      * Return an object of all the properties that are changed and their database representation
      */
-    getChangedDatabaseProperties(): { fields: Record<string, unknown>; skipUpdate: number } {
-        const set: Record<string, unknown> = {};
+    getChangedDatabaseProperties(): { fields: Record<string, DatabaseStoredValue>; skipUpdate: number } {
+        const set: Record<string, DatabaseStoredValue> = {};
         let skipUpdate = 0;
 
         for (const column of this.static.columns.values()) {
@@ -481,9 +534,10 @@ export class Model /* static implements RowInitiable<Model> */ {
 
             if (this[column.name] !== undefined) {
                 const forceSave = this.forceSaveProperties.has(column.name);
-                const saveValue = forceSave ? undefined : column.to(this[column.name]);
-                if (forceSave || column.isChanged(this.savedProperties.get(column.name), saveValue)) {
-                    set[column.name] = saveValue;
+                const oldSavedValue = forceSave ? undefined : this.savedProperties.get(column.name);
+                const saveValue = forceSave ? null : column.to(this[column.name]); // .to is expensive, so avoid calling it when not needed
+                if (forceSave || oldSavedValue === undefined || column.isChanged(oldSavedValue, saveValue)) {
+                    set[column.name] = forceSave ? column.to(this[column.name]) : saveValue;
 
                     if (column.skipUpdate && !forceSave) {
                         skipUpdate++;
@@ -584,8 +638,34 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        // Mark everything as saved
-        this.markSaved(fields);
+        // Emit event
+        if (this.existsInDatabase) {
+            // Keep reference to old properties before marking saved
+            const originalProperties = Object.fromEntries(Array.from(this.savedProperties.entries())) as Record<string, DatabaseStoredValue>;
+
+            // Mark saved before sending the event
+            this.markSaved(fields);
+
+            await this.static.modelEventBus.sendEvent({
+                type: 'updated',
+                model: this,
+                changedFields: fields,
+                originalFields: originalProperties,
+                getOldModel: () => {
+                    // Build a new model as if it was loaded from the database using the same original properties
+                    const v = this.static.fromRow(originalProperties);
+                    if (v === undefined) {
+                        throw new Error('Failed to create old model: primary key might be missing');
+                    }
+                    return v;
+                },
+            });
+        }
+        else {
+            this.markSaved(fields);
+            await this.static.modelEventBus.sendEvent({ type: 'created', model: this });
+        }
+
         return true;
     }
 
@@ -612,5 +692,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             this.eraseProperty(this.static.primary.name);
         }
         this.savedProperties.clear();
+
+        await this.static.modelEventBus.sendEvent({ type: 'deleted', model: this });
     }
 }

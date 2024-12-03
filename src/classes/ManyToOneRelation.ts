@@ -20,7 +20,7 @@ export class ManyToOneRelation<Key extends keyof any, M extends Model> {
     }
 
     /// Whether this relation is loaded
-    isLoaded(model: Model): boolean /* model is Model & Record<Key, M> */ {
+    isLoaded(model: Model) {
         return (model as any)[this.modelKey] !== undefined;
     }
 
