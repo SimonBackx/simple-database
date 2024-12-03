@@ -18,11 +18,11 @@
         "mysql": "^2.18.1"
     },
     "peerDependencies": {
-        "@simonbackx/simple-encoding": "*",
+        "@simonbackx/simple-encoding": "^2.18.0",
         "mysql": "^2.18.1"
     },
     "devDependencies": {
-        "@simonbackx/simple-encoding": "^2.8.1",
+        "@simonbackx/simple-encoding": "^2.18.0",
         "@simonbackx/simple-errors": "^1.4.0",
         "@types/jest": "^27.0.1",
         "@types/mysql": "^2.15.20",

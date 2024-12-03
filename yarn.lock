@@ -810,10 +810,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@simonbackx/simple-encoding@^2.8.1":
-  version "2.8.1"
-  resolved "https://registry.yarnpkg.com/@simonbackx/simple-encoding/-/simple-encoding-2.8.1.tgz#67a888ce15dcda98630897541c77fcd273a6810c"
-  integrity sha512-4pBePYfsI3W4p5d2bZsxjbJ7pQeEGqEMhqaEAxaYhWH1VyGrHZTSYb6wkewX6etgN82dLvKk0rweLLRWH01hWg==
+"@simonbackx/simple-encoding@^2.18.0":
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/@simonbackx/simple-encoding/-/simple-encoding-2.18.0.tgz#6c574a10d258ae886584f56190a61db060c7fd13"
+  integrity sha512-tdokKVGCuR54GsSleY4qLpqP+iwGbxNN3Z/G0LdSuyRGtwrEELRHKndzPQdyrkqDhPOcct/QqKHRpp5c+KwJnQ==
 
 "@simonbackx/simple-errors@^1.4.0":
   version "1.4.0"
