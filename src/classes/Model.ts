@@ -549,6 +549,21 @@ export class Model /* static implements RowInitiable<Model> */ {
         return { fields: set, skipUpdate };
     }
 
+    /**
+     * Return original value from the database or undefined if not known
+     */
+    getOriginalValue(key: string): unknown | undefined {
+        const column = this.static.columns.get(key);
+        if (!column) {
+            throw new Error('Unknown property ' + key);
+        }
+        const c = this.savedProperties.get(key);
+        if (c === undefined) {
+            return undefined;
+        }
+        return column.from(c);
+    }
+
     async save(): Promise<boolean> {
         if (!this.static.table) {
             throw new Error('Table name not set');
