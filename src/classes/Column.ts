@@ -1,4 +1,4 @@
-import { Decoder, EncodableObject, encodeObject, ObjectData, PlainObject } from '@simonbackx/simple-encoding';
+import { Decoder, EncodableObject, EncodeMedium, encodeObject, ObjectData, PlainObject } from '@simonbackx/simple-encoding';
 
 import { ColumnType } from '../decorators/Column';
 
@@ -112,11 +112,11 @@ export class Column {
 
                 if (this.decoder) {
                     if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'value' in parsed && typeof parsed.version === 'number') {
-                        return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version }, this.name));
+                        return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version, medium: EncodeMedium.Database }, this.name));
                     }
 
                     // Fallback decoding without version (since we don't know the saved version)
-                    return this.decoder.decode(new ObjectData(parsed, { version: 0 }, this.name));
+                    return this.decoder.decode(new ObjectData(parsed, { version: 0, medium: EncodeMedium.Database }, this.name));
                 }
                 else {
                     console.warn('It is recommended to always use a decoder for JSON columns');

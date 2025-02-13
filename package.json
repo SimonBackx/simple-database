@@ -22,7 +22,7 @@
         "mysql": "^2.18.1"
     },
     "devDependencies": {
-        "@simonbackx/simple-encoding": "^2.18.0",
+        "@simonbackx/simple-encoding": "^2.20.0",
         "@simonbackx/simple-errors": "^1.4.0",
         "@types/jest": "^27.0.1",
         "@types/mysql": "^2.15.20",
