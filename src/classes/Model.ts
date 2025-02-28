@@ -516,11 +516,6 @@ export class Model /* static implements RowInitiable<Model> */ {
         let skipUpdate = 0;
 
         for (const column of this.static.columns.values()) {
-            // Run beforeSave
-            if (column.beforeSave) {
-                this[column.name] = column.beforeSave.call(this, this[column.name]);
-            }
-
             if (column.primary && column.type === 'integer' && this.static.primary.name === 'id') {
                 // Auto increment: not allowed to set
                 continue;
@@ -547,6 +542,15 @@ export class Model /* static implements RowInitiable<Model> */ {
         }
 
         return { fields: set, skipUpdate };
+    }
+
+    beforeSave() {
+        for (const column of this.static.columns.values()) {
+            // Run beforeSave
+            if (column.beforeSave) {
+                this[column.name] = column.beforeSave.call(this, this[column.name]);
+            }
+        }
     }
 
     /**
@@ -617,6 +621,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
+        this.beforeSave();
         const { fields, skipUpdate } = this.getChangedDatabaseProperties();
 
         if (Object.keys(fields).length === 0) {
