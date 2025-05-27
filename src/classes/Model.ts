@@ -76,13 +76,13 @@ export class Model /* static implements RowInitiable<Model> */ {
 
     existsInDatabase = false;
 
-    private savedProperties = new Map<string, DatabaseStoredValue>();
+    savedProperties = new Map<string, DatabaseStoredValue>();
 
     /**
      * Sometimes we have skipUpdate properties that still should get saved on specific occasions.
      * E.g. update updatedAt field manually if is the only changed field.
      */
-    private forceSaveProperties = new Set<string>();
+    forceSaveProperties = new Set<string>();
 
     constructor() {
         // Read values
@@ -242,7 +242,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         });
     }
 
-    private markSaved(fields?: Record<string, DatabaseStoredValue>) {
+    markSaved(fields?: Record<string, DatabaseStoredValue>) {
         this.existsInDatabase = true;
         this.forceSaveProperties.clear();
 
@@ -265,6 +265,22 @@ export class Model /* static implements RowInitiable<Model> */ {
                 }
             }
         }
+    }
+
+    copyFrom<T extends Model>(this: T, from: T) {
+        for (const column of this.static.columns.values()) {
+            this[column.name] = from[column.name];
+        }
+
+        // Unload all relations
+        for (const relation of this.static.relations) {
+            if (relation.isLoaded(this)) {
+                this[relation.modelKey] = undefined;
+            }
+        }
+
+        this.savedProperties = from.savedProperties;
+        this.forceSaveProperties = from.forceSaveProperties;
     }
 
     get static(): typeof Model {
