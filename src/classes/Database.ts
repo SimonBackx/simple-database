@@ -26,7 +26,7 @@ class DatabaseStatic {
             connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT ?? '10'),
             queueLimit: 0,
             multipleStatements: (process.env.DB_MULTIPLE_STATEMENTS ?? 'false') === 'true',
-            charset: 'utf8mb4',
+            charset: process.env.DB_CHARSET ?? 'utf8mb4_0900_ai_ci',
             ssl: (process.env.DB_USE_SSL ?? false)
                 ? {
                         ca: process.env.DB_CA ? fs.readFileSync(process.env.DB_CA) : undefined,
