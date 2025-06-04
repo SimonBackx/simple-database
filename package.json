@@ -15,11 +15,11 @@
     "dependencies": {
         "@simonbackx/simple-logging": "^1.0.0",
         "colors": "^1.4.0",
-        "mysql": "^2.18.1"
+        "mysql2": "3.14.1"
     },
     "peerDependencies": {
         "@simonbackx/simple-encoding": "^2.18.0",
-        "mysql": "^2.18.1"
+        "mysql2": "^3.14.1"
     },
     "devDependencies": {
         "@simonbackx/simple-encoding": "^2.20.0",

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import mysql from 'mysql';
+import mysql from 'mysql2/promise';
 import { DatabaseStoredValue } from './Column';
 export type SQLResultRow = Record<string, DatabaseStoredValue>;
 export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
@@ -27,6 +27,8 @@ class DatabaseStatic {
             queueLimit: 0,
             multipleStatements: (process.env.DB_MULTIPLE_STATEMENTS ?? 'false') === 'true',
             charset: process.env.DB_CHARSET ?? 'utf8mb4_0900_ai_ci',
+            decimalNumbers: true,
+            jsonStrings: true,
             ssl: (process.env.DB_USE_SSL ?? false)
                 ? {
                         ca: process.env.DB_CA ? fs.readFileSync(process.env.DB_CA) : undefined,
@@ -62,15 +64,7 @@ class DatabaseStatic {
 
     async getConnection(): Promise<mysql.PoolConnection> {
         // Todo: use the settings here to provide a good connection pool
-        return new Promise((resolve, reject) => {
-            this.pool.getConnection((err, connection) => {
-                if (err) {
-                    console.error('connection failed');
-                    return reject(err);
-                }
-                return resolve(connection);
-            });
-        });
+        return await this.pool.getConnection();
     }
 
     escapeId(value: string): string {
@@ -78,19 +72,7 @@ class DatabaseStatic {
     }
 
     async end(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.pool.end((err) => {
-                if (err) {
-                    console.error(err);
-                    return reject(err);
-                }
-
-                if (this.debug) {
-                    console.log('All connections have ended in the pool');
-                }
-                return resolve();
-            });
-        });
+        return await this.pool.end();
     }
 
     startQuery(): [number, number] {
@@ -111,101 +93,92 @@ class DatabaseStatic {
         }
     }
 
-    select(query: string, values?: any, options?: SelectOptions & { nestTables: true }): Promise<[SQLResultNamespacedRow[], mysql.FieldInfo[] | undefined]>;
-    select(query: string, values?: any, options?: SelectOptions & { nestTables: false }): Promise<[SQLResultRow[], mysql.FieldInfo[] | undefined]>;
-    async select(query: string, values?: any, options: SelectOptions = {}): Promise<[(SQLResultNamespacedRow | SQLResultRow)[], mysql.FieldInfo[] | undefined]> {
+    select(query: string, values?: any, options?: SelectOptions & { nestTables: true }): Promise<[SQLResultNamespacedRow[], mysql.FieldPacket[] | undefined]>;
+    select(query: string, values?: any, options?: SelectOptions & { nestTables: false }): Promise<[SQLResultRow[], mysql.FieldPacket[] | undefined]>;
+    async select(query: string, values?: any, options: SelectOptions = {}): Promise<[(SQLResultNamespacedRow | SQLResultRow)[], mysql.FieldPacket[] | undefined]> {
         const connection: mysql.PoolConnection = options.connection ?? (await this.getConnection());
-        return new Promise((resolve, reject) => {
-            const hrstart = this.startQuery();
-            const q = connection.query({ sql: query, nestTables: options.nestTables ?? true, values: values }, (err, results, fields) => {
-                if (!options.connection) connection.release();
-
-                this.finishQuery(q, hrstart);
-
-                if (err) {
-                    return reject(err);
-                }
-
-                return resolve([results, fields]);
-            });
-            this.logQuery(q, hrstart);
-        });
+        try {
+            const q = await connection.query({ sql: query, nestTables: options.nestTables ?? true, values: values });
+            return [
+                q[0] as (SQLResultNamespacedRow | SQLResultRow)[],
+                q[1] as mysql.FieldPacket[] | undefined,
+            ];
+        }
+        finally {
+            if (!options.connection) {
+                connection.release();
+            }
+        }
     }
 
     async insert(
         query: string,
         values?: any,
         useConnection?: mysql.PoolConnection,
-    ): Promise<[{ insertId: any; affectedRows: number }, mysql.FieldInfo[] | undefined]> {
+    ): Promise<[{ insertId: any; affectedRows: number }, mysql.FieldPacket[] | undefined]> {
         const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
-        return new Promise((resolve, reject) => {
-            const hrstart = this.startQuery();
-            const q = connection.query(query, values, (err, results, fields) => {
-                if (!useConnection) connection.release();
-
-                this.finishQuery(q, hrstart);
-
-                if (err) {
-                    return reject(err);
-                }
-                return resolve([results, fields]);
-            });
-            this.logQuery(q, hrstart);
-        });
+        try {
+            const q = await connection.query({ sql: query, values: values });
+            return [
+                q[0] as { insertId: any; affectedRows: number },
+                q[1] as mysql.FieldPacket[] | undefined,
+            ];
+        }
+        finally {
+            if (!useConnection) {
+                connection.release();
+            }
+        }
     }
 
-    async update(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[{ changedRows: number }, mysql.FieldInfo[] | undefined]> {
+    async update(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[
+        { /** @deprecated */ changedRows: number; affectedRows: number }
+        , mysql.FieldPacket[] | undefined]> {
         const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
-        return new Promise((resolve, reject) => {
-            const hrstart = this.startQuery();
-            const q = connection.query(query, values, (err, results, fields) => {
-                if (!useConnection) connection.release();
-
-                this.finishQuery(q, hrstart);
-
-                if (err) {
-                    return reject(err);
-                }
-                return resolve([results, fields]);
-            });
-            this.logQuery(q, hrstart);
-        });
+        try {
+            const q = await connection.query({ sql: query, values: values });
+            return [
+                q[0] as { changedRows: number; affectedRows: number },
+                q[1] as mysql.FieldPacket[] | undefined,
+            ];
+        }
+        finally {
+            if (!useConnection) {
+                connection.release();
+            }
+        }
     }
 
-    async delete(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[{ affectedRows: number }, mysql.FieldInfo[] | undefined]> {
+    async delete(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[{ affectedRows: number }, mysql.FieldPacket[] | undefined]> {
         const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
-        return new Promise((resolve, reject) => {
-            const hrstart = this.startQuery();
-            const q = connection.query(query, values, (err, results, fields) => {
-                if (!useConnection) connection.release();
-
-                this.finishQuery(q, hrstart);
-
-                if (err) {
-                    return reject(err);
-                }
-                return resolve([results, fields]);
-            });
-            this.logQuery(q, hrstart);
-        });
+        try {
+            const q = await connection.query({ sql: query, values: values });
+            return [
+                q[0] as { affectedRows: number },
+                q[1] as mysql.FieldPacket[] | undefined,
+            ];
+        }
+        finally {
+            if (!useConnection) {
+                connection.release();
+            }
+        }
     }
 
     async statement(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[any, any]> {
         const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
-        return new Promise((resolve, reject) => {
-            const hrstart = this.startQuery();
-            const q = connection.query(query, values, (err, results, fields) => {
-                if (!useConnection) connection.release();
-
-                this.finishQuery(q, hrstart);
-
-                if (err) {
-                    return reject(err);
-                }
-                return resolve([results, fields]);
-            });
-            this.logQuery(q, hrstart);
-        });
+        try {
+            const q = await connection.query({ sql: query, values: values });
+            return [
+                q[0] as any,
+                q[1] as any,
+            ];
+        }
+        finally {
+            if (!useConnection) {
+                connection.release();
+            }
+        }
     }
 }
 
