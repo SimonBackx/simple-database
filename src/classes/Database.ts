@@ -7,32 +7,57 @@ export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
 type SelectOptions = { connection?: mysql.PoolConnection; nestTables?: boolean };
 
 /// Database is a wrapper arround mysql, because we want to use promises + types
-class DatabaseStatic {
+export class DatabaseInstance {
     pool: mysql.Pool;
     debug = false;
 
-    constructor(options: { debug?: boolean } = {}) {
-        if (!process.env.DB_DATABASE) {
+    constructor(options: {
+        debug?: boolean;
+        host?: string;
+        user?: string;
+        password?: string;
+        port?: number;
+        database?: string | null; // set to null to not use a default database
+        connectionLimit?: number;
+        multipleStatements?: boolean;
+        charset?: string;
+        useSSL?: boolean;
+        ca?: string;
+    } = {}) {
+        const settings = {
+            host: options.host ?? process.env.DB_HOST ?? 'localhost',
+            user: options.user ?? process.env.DB_USER ?? 'root',
+            password: options.password ?? process.env.DB_PASS ?? 'root',
+            port: options.port ? options.port : parseInt(process.env.DB_PORT ?? '3306'),
+            database: options.database === undefined ? process.env.DB_DATABASE : options.database,
+            connectionLimit: options.connectionLimit ? options.connectionLimit : parseInt(process.env.DB_CONNECTION_LIMIT ?? '10'),
+            multipleStatements: options.multipleStatements ?? ((process.env.DB_MULTIPLE_STATEMENTS ?? 'false') === 'true'),
+            charset: options.charset ?? process.env.DB_CHARSET ?? 'utf8mb4_0900_ai_ci',
+            useSSL: options.useSSL ?? !!process.env.DB_USE_SSL,
+            ca: options.ca ?? process.env.DB_CA,
+        };
+
+        if (settings.database === undefined) {
             throw new Error('Environment variable DB_DATABASE is missing');
         }
 
         this.pool = mysql.createPool({
-            host: process.env.DB_HOST ?? 'localhost',
-            user: process.env.DB_USER ?? 'root',
-            password: process.env.DB_PASS ?? 'root',
-            port: parseInt(process.env.DB_PORT ?? '3306'),
-            database: process.env.DB_DATABASE,
+            host: settings.host,
+            user: settings.user,
+            password: settings.password,
+            port: settings.port,
+            database: settings.database ?? undefined,
             waitForConnections: true,
-            connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT ?? '10'),
+            connectionLimit: settings.connectionLimit,
             queueLimit: 0,
-            multipleStatements: (process.env.DB_MULTIPLE_STATEMENTS ?? 'false') === 'true',
-            charset: process.env.DB_CHARSET ?? 'utf8mb4_0900_ai_ci',
+            multipleStatements: settings.multipleStatements,
+            charset: settings.charset,
             decimalNumbers: true,
             jsonStrings: true,
-            ssl: (process.env.DB_USE_SSL ?? false)
+            ssl: settings.useSSL
                 ? {
-                        ca: process.env.DB_CA ? fs.readFileSync(process.env.DB_CA) : undefined,
-                        rejectUnauthorized: process.env.DB_CA ? true : false,
+                        ca: settings.ca ? fs.readFileSync(settings.ca) : undefined,
+                        rejectUnauthorized: settings.ca ? true : false,
                     }
                 : undefined,
         });
@@ -182,4 +207,4 @@ class DatabaseStatic {
     }
 }
 
-export const Database = new DatabaseStatic();
+export const Database = new DatabaseInstance();
