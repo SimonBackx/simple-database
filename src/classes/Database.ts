@@ -5,25 +5,30 @@ export type SQLResultRow = Record<string, DatabaseStoredValue>;
 export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
 
 type SelectOptions = { connection?: mysql.PoolConnection; nestTables?: boolean };
+export type PoolOptions = {
+    debug?: boolean;
+    host?: string;
+    user?: string;
+    password?: string;
+    port?: number;
+    database?: string | null; // set to null to not use a default database
+    connectionLimit?: number;
+    multipleStatements?: boolean;
+    charset?: string;
+    useSSL?: boolean;
+    ca?: string;
+};
 
 /// Database is a wrapper arround mysql, because we want to use promises + types
 export class DatabaseInstance {
     pool: mysql.Pool;
     debug = false;
 
-    constructor(options: {
-        debug?: boolean;
-        host?: string;
-        user?: string;
-        password?: string;
-        port?: number;
-        database?: string | null; // set to null to not use a default database
-        connectionLimit?: number;
-        multipleStatements?: boolean;
-        charset?: string;
-        useSSL?: boolean;
-        ca?: string;
-    } = {}) {
+    constructor(options: PoolOptions = {}) {
+        this.createPool(options);
+    }
+
+    createPool(options: PoolOptions = {}) {
         const settings = {
             host: options.host ?? process.env.DB_HOST ?? 'localhost',
             user: options.user ?? process.env.DB_USER ?? 'root',
@@ -61,7 +66,6 @@ export class DatabaseInstance {
                     }
                 : undefined,
         });
-
         this.debug = options?.debug ?? false;
 
         if (this.debug) {
@@ -81,6 +85,11 @@ export class DatabaseInstance {
                 console.log('Connection %d released', connection.threadId);
             });
         }
+    }
+
+    async reload(options: PoolOptions = {}): Promise<void> {
+        await this.pool.end();
+        this.createPool(options);
     }
 
     setDebug(enabled = true) {
