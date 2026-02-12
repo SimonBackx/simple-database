@@ -716,7 +716,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             throw new Error('Model ' + this.constructor.name + " can't be deleted if it doesn't exist in the database already");
         }
 
-        if (Model.debug) console.log(`Updating ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
+        if (Model.debug) console.log(`Deleting ${this.constructor.name} where ${this.static.primary.name} = ${id}`);
 
         const [result] = await Database.delete('DELETE FROM `' + this.static.table + '` WHERE `' + this.static.primary.name + '` = ?', [id]);
         if (result.affectedRows !== 1 && Model.showWarnings) {
