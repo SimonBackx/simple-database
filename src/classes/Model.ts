@@ -76,7 +76,10 @@ export class Model /* static implements RowInitiable<Model> */ {
 
     existsInDatabase = false;
 
-    savedProperties = new Map<string, DatabaseStoredValue>();
+    savedProperties = new Map<string, DatabaseStoredValue | ({
+        to: () => DatabaseStoredValue;
+        from: () => unknown;
+    })>();
 
     /**
      * Sometimes we have skipUpdate properties that still should get saved on specific occasions.
@@ -208,6 +211,16 @@ export class Model /* static implements RowInitiable<Model> */ {
     }
 
     /**
+     * Set a many relation. Note that this doesn't save the relation! You'll need to use the methods of the relation instead
+     */
+    getManyRelation<Key extends keyof any, Value extends Model>(
+        relation: ManyToManyRelation<Key, any, Value, any> | OneToManyRelation<Key, any, Value>,
+    ): Value[] | null {
+        const t = this as any;
+        return t[relation.modelKey] ?? null;
+    }
+
+    /**
      * Load the returned properties from a DB response row into the model
      * If the row's primary key is null, undefined is returned
      */
@@ -228,7 +241,7 @@ export class Model /* static implements RowInitiable<Model> */ {
             }
         }
 
-        model.markSaved(); // note: we don't pass row because that value is unreliable for json values (mysql performs sorting and other opertions on keys)
+        model.markSaved(row, { fromMySQL: true }); // note: we don't pass row because that value is unreliable for json values (mysql performs sorting and other opertions on keys)
         return model;
     }
 
@@ -242,14 +255,44 @@ export class Model /* static implements RowInitiable<Model> */ {
         });
     }
 
-    markSaved(fields?: Record<string, DatabaseStoredValue>) {
+    markSaved(fields?: Record<string, DatabaseStoredValue>, options?: { fromMySQL?: boolean }) {
         this.existsInDatabase = true;
         this.forceSaveProperties.clear();
 
         for (const column of this.static.columns.values()) {
             if ((fields ? fields[column.name] : this[column.name]) !== undefined) {
                 // If undefined: do not update, since we didn't save the value
-                this.savedProperties.set(column.name, fields ? fields[column.name] : column.to(this[column.name]));
+                this.savedProperties.set(column.name, fields
+                    ? (column.type === 'json' && options?.fromMySQL
+                            ? {
+                                // We can never use the original value we received from MySQL because the ordering of keys is different in MySQL.
+                                // We use this object to avoid doing expensive CPU operations if we don't need to check if a value has changed
+                                // so we only evaluate this once we actually try to save a model to the database
+                                    to() {
+                                        if (this._to) {
+                                            return this._to;
+                                        }
+                                        const value = this._from ?? column.from(fields[column.name]);
+                                        this._from = value;
+
+                                        const found = column.to(value);
+                                        // Store permanently
+                                        this._to = found;
+                                        return found;
+                                    },
+                                    from() {
+                                        if (this._from) {
+                                            return this._from;
+                                        }
+                                        const from = column.from(fields[column.name]);
+                                        this._from = from;
+                                        return from;
+                                    },
+                                }
+                            : fields[column.name]
+                        )
+                    : column.to(this[column.name]),
+                );
             }
         }
 
@@ -281,6 +324,7 @@ export class Model /* static implements RowInitiable<Model> */ {
 
         this.savedProperties = from.savedProperties;
         this.forceSaveProperties = from.forceSaveProperties;
+        this.existsInDatabase = from.existsInDatabase;
     }
 
     get static(): typeof Model {
@@ -547,7 +591,7 @@ export class Model /* static implements RowInitiable<Model> */ {
                 const forceSave = this.forceSaveProperties.has(column.name);
                 const oldSavedValue = forceSave ? undefined : this.savedProperties.get(column.name);
                 const saveValue = forceSave ? null : column.to(this[column.name]); // .to is expensive, so avoid calling it when not needed
-                if (forceSave || oldSavedValue === undefined || column.isChanged(oldSavedValue, saveValue)) {
+                if (forceSave || oldSavedValue === undefined || column.isChanged(typeof oldSavedValue === 'object' && oldSavedValue !== null && 'to' in oldSavedValue ? oldSavedValue.to() : oldSavedValue, saveValue)) {
                     set[column.name] = forceSave ? column.to(this[column.name]) : saveValue;
 
                     if (column.skipUpdate && !forceSave) {
@@ -580,6 +624,9 @@ export class Model /* static implements RowInitiable<Model> */ {
         const c = this.savedProperties.get(key);
         if (c === undefined) {
             return undefined;
+        }
+        if (typeof c === 'object' && c !== null && 'from' in c) {
+            return c.from();
         }
         return column.from(c);
     }
@@ -677,7 +724,14 @@ export class Model /* static implements RowInitiable<Model> */ {
         // Emit event
         if (this.existsInDatabase) {
             // Keep reference to old properties before marking saved
-            const originalProperties = Object.fromEntries(Array.from(this.savedProperties.entries())) as Record<string, DatabaseStoredValue>;
+            const originalProperties = Object.fromEntries(
+                Array.from(this.savedProperties.entries()).map(([key, value]) => {
+                    if (typeof value === 'object' && value !== null && 'to' in value) {
+                        return [key, value.to()];
+                    }
+                    return [key, value];
+                }),
+            );
 
             // Mark saved before sending the event
             this.markSaved(fields);
