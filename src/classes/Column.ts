@@ -194,7 +194,7 @@ export class Column {
 
                 return JSON.stringify({
                     // Warning: keys should be sorted or they will get marked as changed every time
-                    value: encodeObject(data as EncodableObject, { version }),
+                    value: encodeObject(data as EncodableObject, { version, medium: EncodeMedium.Database }),
                     version: version,
 
                 });
