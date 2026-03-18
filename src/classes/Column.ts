@@ -111,6 +111,14 @@ export class Column {
                 }
 
                 if (this.decoder) {
+                    if (this.decoder.decodeField) {
+                        if (typeof parsed === 'object' && parsed !== null && 'value' in parsed && typeof (parsed as any).version === 'number') {
+                            return this.decoder.decodeField(parsed.value, { version: (parsed as any).version, medium: EncodeMedium.Database }, this.name);
+                        }
+
+                        // Fallback decoding without version (since we don't know the saved version)
+                        return this.decoder.decodeField(parsed, { version: 0, medium: EncodeMedium.Database }, this.name);
+                    }
                     if (typeof parsed === 'object' && parsed !== null && 'version' in parsed && 'value' in parsed && typeof parsed.version === 'number') {
                         return this.decoder.decode(new ObjectData(parsed.value, { version: parsed.version, medium: EncodeMedium.Database }, this.name));
                     }
