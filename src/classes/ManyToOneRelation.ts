@@ -1,5 +1,5 @@
-import { Database } from './Database';
-import { Model } from './Model';
+import { Database } from './Database.js';
+import { Model } from './Model.js';
 
 export class ManyToOneRelation<Key extends keyof any, M extends Model> {
     model: { new (): M } & typeof Model;

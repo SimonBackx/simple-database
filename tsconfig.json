@@ -1,19 +1,19 @@
 {
+    // File used by the editor.
+    "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        "target": "es2019",
-        "module": "commonjs",
-        "jsx": "preserve",
-        "importHelpers": true,
-        "moduleResolution": "node",
-        "experimentalDecorators": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "sourceMap": true,
-        "strictNullChecks": true,
-        "outDir": "dist",
-        "lib": ["es2019"],
-        "types": ["node", "jest"]
+        "outDir": "dist"
     },
-    "include": ["*.ts", "src/**/*.ts", "tests/**/*.ts", "*.d.ts"],
-    "exclude": ["node_modules", "dist"]
+    "files": [], // intentionally empty
+    "references": [
+        // Project dependencies are added by nx sync
+        {
+            // Normal build
+            "path": "./tsconfig.esm.json"
+        },
+        {
+            // Test files
+            "path": "./tsconfig.test.json"
+        }
+    ]
 }

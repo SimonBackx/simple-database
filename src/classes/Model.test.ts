@@ -1,14 +1,16 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable jest/no-conditional-expect */
-import { Data, Encodeable } from '@simonbackx/simple-encoding';
-import { EncodeContext } from '@simonbackx/simple-encoding/dist/src/classes/EncodeContext';
+import { Data, Encodeable, EncodeContext } from '@simonbackx/simple-encoding';
+import { column } from '../decorators/Column.js';
+import { Database } from './Database.js';
+import { ManyToManyRelation } from './ManyToManyRelation.js';
+import { ManyToOneRelation } from './ManyToOneRelation.js';
+import { Model } from './Model.js';
+import { OneToManyRelation } from './OneToManyRelation.js';
 
-import { column } from '../decorators/Column';
-import { Database } from './Database';
-import { ManyToManyRelation } from './ManyToManyRelation';
-import { ManyToOneRelation } from './ManyToOneRelation';
-import { Model } from './Model';
-import { OneToManyRelation } from './OneToManyRelation';
+function omit(obj, ...keys) {
+    const copy = { ...obj };
+    for (const key of keys) delete copy[key];
+    return copy;
+}
 
 describe('Model', () => {
     class TestDecoder implements Encodeable {
@@ -45,6 +47,11 @@ describe('Model', () => {
     // Create a new class
     class TestModel extends Model {
         static table = 'testModels';
+        static parent = new ManyToOneRelation(TestModel, 'parent');
+        static friends = new ManyToManyRelation(TestModel, TestModel, 'friends', TestModelFriend);
+        static sortedFriends = new ManyToManyRelation(TestModel, TestModel, 'sortedFriends').setSort('priority');
+        static children = new OneToManyRelation(TestModel, TestModel, 'children', 'parentId');
+        static sortedChildren = new OneToManyRelation(TestModel, TestModel, 'sortedChildren', 'parentId').setSort('count');
 
         @column({ primary: true, type: 'integer' })
         id: number | null = null;
@@ -79,12 +86,6 @@ describe('Model', () => {
 
         @column({ foreignKey: TestModel.parent, type: 'integer', nullable: true })
         parentId: number | null = null; // null = no address
-
-        static parent = new ManyToOneRelation(TestModel, 'parent');
-        static friends = new ManyToManyRelation(TestModel, TestModel, 'friends', TestModelFriend);
-        static sortedFriends = new ManyToManyRelation(TestModel, TestModel, 'sortedFriends').setSort('priority');
-        static children = new OneToManyRelation(TestModel, TestModel, 'children', 'parentId');
-        static sortedChildren = new OneToManyRelation(TestModel, TestModel, 'sortedChildren', 'parentId').setSort('count');
     }
 
     // Create a new class
@@ -122,7 +123,7 @@ describe('Model', () => {
         m.birthDay = new Date(1990, 0, 1);
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
-        expect(m.createdOn).toBeDate();
+        expect(m.createdOn).toBeInstanceOf(Date);
 
         const date = m.createdOn;
 
@@ -194,7 +195,7 @@ describe('Model', () => {
         m.birthDay = new Date(1990, 0, 1);
         await m.save();
         expect(m.existsInDatabase).toEqual(true);
-        expect(m.createdOn).toBeDate();
+        expect(m.createdOn).toBeInstanceOf(Date);
 
         expect(m.id).toBeGreaterThanOrEqual(1);
 
@@ -202,10 +203,21 @@ describe('Model', () => {
         expect(rows).toHaveLength(1);
         const row = rows[0];
         expect(row).toHaveProperty('testModels');
-        const selected = TestModel.fromRow(row['testModels']) as any;
+        const selected = TestModel.fromRow(row['testModels']) as TestModel;
 
-        expect(selected).toEqual(m);
+        expect(
+            omit(selected, 'savedProperties'),
+        ).toEqual(
+            omit(m, 'savedProperties'),
+        );
         expect(selected.id).toEqual(m.id);
+
+        // Should not save again
+        expect(await selected.save()).toEqual(false);
+
+        // Should save if we change something deep
+        selected.testDecoder.id = 5;
+        expect(await selected.save()).toEqual(true);
     });
 
     test('You cannot set a relation directly', async () => {
@@ -214,7 +226,7 @@ describe('Model', () => {
         other.isActive = true;
         other.count = 1;
         await other.save();
-        expect(other.createdOn).toBeDate();
+        expect(other.createdOn).toBeInstanceOf(Date);
         expect(other.existsInDatabase).toEqual(true);
 
         const m = new TestModel();
@@ -281,18 +293,23 @@ describe('Model', () => {
 
         // Check other way
         const o = await TestModel.getByID(other.id);
-        expect(o).toEqual(other);
+
         if (!o) {
             throw new Error('Save failed');
         }
+        expect(
+            omit(o, 'savedProperties'),
+        ).toEqual(
+            omit(other, 'savedProperties'),
+        );
 
         const children = await TestModel.children.load(o);
         expect(children).toHaveLength(3);
-        expect(TestModel.children.isLoaded(o)).toBeTrue();
+        expect(TestModel.children.isLoaded(o)).toBe(true);
 
         const sortedChildren = await TestModel.sortedChildren.load(o);
         expect(sortedChildren).toHaveLength(3);
-        expect(TestModel.sortedChildren.isLoaded(o)).toBeTrue();
+        expect(TestModel.sortedChildren.isLoaded(o)).toBe(true);
         expect(sortedChildren.map(c => c.count)).toEqual([1, 4, 5]);
     });
 
@@ -305,7 +322,7 @@ describe('Model', () => {
         expect(other.existsInDatabase).toEqual(true);
         expect(other.parentId).toEqual(null);
         expect(other.birthDay).toEqual(null);
-        expect(other.createdOn).toBeDate();
+        expect(other.createdOn).toBeInstanceOf(Date);
 
         const m = new TestModel() as any;
         m.name = 'My name';
@@ -622,7 +639,7 @@ describe('Model', () => {
 
         const friendsAgain = TestModel.fromRows(rows, 'friends');
         expect(friendsAgain).toHaveLength(3);
-        expect(friendsAgain.map(f => f.id)).toIncludeSameMembers([friend3.id, friend2.id, friend1.id]);
+        expect(friendsAgain.map(f => f.id).sort()).toEqual([friend3.id, friend2.id, friend1.id].sort());
     });
 
     test('Unlink a not loaded many to many relation', async () => {
@@ -640,7 +657,7 @@ describe('Model', () => {
         expect(meAgain.id).toEqual(meWithoutFriends.id);
 
         const friendsAgain = TestModel.fromRows(rows, 'friends');
-        expect(friendsAgain.map(f => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
+        expect(friendsAgain.map(f => f.id).sort()).toEqual([friend2.id, friend1.id].sort());
     });
 
     test('Load a M2M relation', async () => {
@@ -656,7 +673,7 @@ describe('Model', () => {
         const friends = await TestModel.friends.load(selected);
         expect(TestModel.friends.isLoaded(selected)).toEqual(true);
         expect(selected.friends).toEqual(friends);
-        expect(friends.map(f => f.id)).toIncludeSameMembers([friend2.id, friend1.id]);
+        expect(friends.map(f => f.id).sort()).toEqual([friend2.id, friend1.id].sort());
 
         expect(friends[0]._link).toMatchObject({
             priority: friends[0].id === friend2.id ? 20 : 10,
@@ -707,7 +724,7 @@ describe('Model', () => {
         const friends = await TestModel.friends.load(selected);
         expect(TestModel.friends.isLoaded(selected)).toEqual(true);
         expect(selected.friends).toEqual(friends);
-        expect(friends).toBeEmpty();
+        expect(friends).toEqual([]);
     });
 
     test("You can't set many to many if not yet saved", async () => {
@@ -735,6 +752,6 @@ describe('Model', () => {
     test('Get by IDs', async () => {
         const models = await TestModel.getByIDs(friend1.id, friend2.id, friend3.id, meWithFriends.id!);
         expect(models).toHaveLength(4);
-        expect(models.map(e => e.id)).toIncludeAllMembers([friend1.id, friend2.id, friend3.id, meWithFriends.id!]);
+        expect(models.map(e => e.id).sort()).toEqual([friend1.id, friend2.id, friend3.id, meWithFriends.id!].sort());
     });
 });

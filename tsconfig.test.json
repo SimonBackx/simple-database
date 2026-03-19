@@ -1,0 +1,24 @@
+{
+    // File used when building the package.
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "outDir": "./dist/test",
+        "lib": [
+            "es2022",
+            "dom"
+        ],
+        "types": [
+            "node",
+            "vitest/globals"
+        ]
+    },
+    "references": [],
+    "include": [
+        "./jest.d.ts",
+        "./migrations.ts",
+        "./src/",
+        "./tests",
+    ]
+}

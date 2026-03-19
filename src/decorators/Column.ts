@@ -1,8 +1,8 @@
 import { Decoder } from '@simonbackx/simple-encoding';
 
-import { Column } from '../classes/Column';
-import { ManyToOneRelation } from '../classes/ManyToOneRelation';
-import { Model } from '../classes/Model';
+import { Column } from '../classes/Column.js';
+import { ManyToOneRelation } from '../classes/ManyToOneRelation.js';
+import { Model } from '../classes/Model.js';
 
 export type ColumnType = 'integer' | 'number' | 'string' | 'date' | 'datetime' | 'boolean' | 'json';
 

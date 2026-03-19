@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Column, DatabaseStoredValue } from './Column';
-import { Database } from './Database';
-import { ManyToManyRelation } from './ManyToManyRelation';
-import { ManyToOneRelation } from './ManyToOneRelation';
-import { OneToManyRelation } from './OneToManyRelation';
+import { Column, DatabaseStoredValue } from './Column.js';
+import { Database } from './Database.js';
+import { ManyToManyRelation } from './ManyToManyRelation.js';
+import { ManyToOneRelation } from './ManyToOneRelation.js';
+import { OneToManyRelation } from './OneToManyRelation.js';
 
 type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string };
 type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] };

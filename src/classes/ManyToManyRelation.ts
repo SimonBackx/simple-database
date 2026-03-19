@@ -1,5 +1,5 @@
-import { Database } from './Database';
-import { Model } from './Model';
+import { Database } from './Database.js';
+import { Model } from './Model.js';
 
 export class ManyToManyRelation<Key extends keyof any, A extends Model, B extends Model, Link extends Model | undefined = undefined> {
     modelA: { new (): A } & typeof Model;

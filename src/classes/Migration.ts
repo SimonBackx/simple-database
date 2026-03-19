@@ -1,8 +1,46 @@
 import { promises as fs } from 'fs';
 
-import { Migration as MigrationModel } from '../models/Migration';
-import { Database } from './Database';
+import { Migration as MigrationModel } from '../models/Migration.js';
+import { Database } from './Database.js';
 import { logger, StyledText } from '@simonbackx/simple-logging';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+function getDirname(): string {
+    // CJS environment
+    if (typeof __dirname !== 'undefined') {
+        return __dirname;
+    }
+
+    // ESM environment
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+        // @ts-ignore
+        return dirname(fileURLToPath(import.meta.url));
+    }
+    throw new Error('Cannot determine __dirname');
+}
+
+export async function fileExists(file: string): Promise<boolean> {
+    try {
+        await fs.access(file);
+        return true;
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+async function getProjectRoot() {
+    let path = getDirname();
+    for (let index = 0; index < 5; index++) {
+        if (await fileExists(path + '/migrations')) {
+            return path;
+        }
+        path += '/..';
+    }
+    throw new Error('Could not find migrations root');
+}
 
 type MigrationFunction = () => Promise<void>;
 
@@ -28,7 +66,7 @@ export class Migration {
      * Given a folder, loop all the folders in that folder and run the migrations in the 'migrations' folder
      */
     static async runAll(folder: string): Promise<boolean> {
-        const dirname = __dirname;
+        const dirname = getDirname();
 
         // Get the current working directory by removing shared part of folder and dirname
         const shared = dirname.split('/').filter((part, index) => part === folder.split('/')[index]).join('/');
@@ -44,7 +82,8 @@ export class Migration {
         process.env.DB_MULTIPLE_STATEMENTS = 'true';
 
         // First check if we have migrations table
-        const setupMigration = await this.getMigration(__dirname + '/../migrations/000000000-setup-migrations.sql');
+        const projectRoot = await getProjectRoot();
+        const setupMigration = await this.getMigration(projectRoot + '/migrations/000000000-setup-migrations.sql');
         if (!setupMigration) {
             throw new Error('Setup migration missing');
         }

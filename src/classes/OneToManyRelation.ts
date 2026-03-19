@@ -1,5 +1,5 @@
-import { Database } from './Database';
-import { Model } from './Model';
+import { Database } from './Database.js';
+import { Model } from './Model.js';
 
 export class OneToManyRelation<Key extends keyof any, A extends Model, B extends Model> {
     modelA: { new (): A } & typeof Model;

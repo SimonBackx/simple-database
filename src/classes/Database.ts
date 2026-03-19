@@ -1,6 +1,6 @@
 import fs from 'fs';
 import mysql from 'mysql2/promise';
-import { DatabaseStoredValue } from './Column';
+import { DatabaseStoredValue } from './Column.js';
 export type SQLResultRow = Record<string, DatabaseStoredValue>;
 export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
 
@@ -36,7 +36,7 @@ export class DatabaseInstance {
             port: options.port ? options.port : parseInt(process.env.DB_PORT ?? '3306'),
             database: options.database === undefined ? process.env.DB_DATABASE : options.database,
             connectionLimit: options.connectionLimit ? options.connectionLimit : parseInt(process.env.DB_CONNECTION_LIMIT ?? '10'),
-            multipleStatements: options.multipleStatements ?? ((process.env.DB_MULTIPLE_STATEMENTS ?? 'false') === 'true'),
+            multipleStatements: options.multipleStatements ?? ((process.env.DB_MULTIPLE_STATEMENTS ?? 'true') === 'true'),
             charset: options.charset ?? process.env.DB_CHARSET ?? 'utf8mb4_0900_ai_ci',
             useSSL: options.useSSL ?? !!process.env.DB_USE_SSL,
             ca: options.ca ?? process.env.DB_CA,

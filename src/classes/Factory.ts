@@ -1,6 +1,6 @@
-import BoyNames from './data/boys';
-import FamilyNames from './data/family-names';
-import GirlNames from './data/girls';
+import BoyNames from './data/boys.js';
+import FamilyNames from './data/family-names.js';
+import GirlNames from './data/girls.js';
 
 export abstract class Factory<Options, Model> {
     options: Options;
