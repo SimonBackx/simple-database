@@ -207,7 +207,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         return result.affectedRows;
     }
 
-    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] } | Link[]): Promise<void> {
+    async link(modelA: A, modelsB: B[], linkTableValues?: { [key: string]: any[] }): Promise<void> {
         const modelAId = modelA.getPrimaryKey();
         if (!modelAId) {
             throw new Error('Cannot link if model is not saved yet');
