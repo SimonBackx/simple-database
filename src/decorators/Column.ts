@@ -3,8 +3,7 @@ import { Decoder } from '@simonbackx/simple-encoding';
 import { Column } from '../classes/Column.js';
 import { ManyToOneRelation } from '../classes/ManyToOneRelation.js';
 import { Model } from '../classes/Model.js';
-
-export type ColumnType = 'integer' | 'number' | 'string' | 'date' | 'datetime' | 'boolean' | 'json';
+import { type ColumnType } from '../classes/ColumnType.js';
 
 export function column<Key extends keyof any, Value extends Model>(settings: {
     type: ColumnType;

@@ -163,7 +163,7 @@ export class ManyToManyRelation<Key extends keyof any, A extends Model, B extend
         }
     }
 
-    async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] } | Link[]): Promise<number> {
+    async linkIds(modelA: string | number, modelsB: (string | number)[], linkTableValues?: { [key: string]: any[] }): Promise<number> {
         if (modelsB.length === 0) {
             return 0;
         }

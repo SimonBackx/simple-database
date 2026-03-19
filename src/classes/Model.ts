@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Column, DatabaseStoredValue } from './Column.js';
+import { Column } from './Column.js';
 import { Database } from './Database.js';
-import { ManyToManyRelation } from './ManyToManyRelation.js';
-import { ManyToOneRelation } from './ManyToOneRelation.js';
-import { OneToManyRelation } from './OneToManyRelation.js';
+import { type DatabaseStoredValue } from './DatabaseStoredValue.js';
+import { type ManyToManyRelation } from './ManyToManyRelation.js';
+import { type ManyToOneRelation } from './ManyToOneRelation.js';
+import { type OneToManyRelation } from './OneToManyRelation.js';
 
 type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string };
 type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] };
@@ -31,10 +32,13 @@ export class ModelEventBus<Value> {
     }
 
     async sendEvent(value: Value) {
-        const values: (Promise<void> | void)[] = [];
+        const values: (Promise<void>)[] = [];
         for (const owner of this.listeners.values()) {
             for (const listener of owner) {
-                values.push(listener.listener(value));
+                const v = listener.listener(value);
+                if (v) {
+                    values.push(v);
+                }
             }
         }
         return await Promise.all(values);

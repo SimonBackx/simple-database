@@ -1,6 +1,6 @@
 import fs from 'fs';
 import mysql from 'mysql2/promise';
-import { DatabaseStoredValue } from './Column.js';
+import { type DatabaseStoredValue } from './DatabaseStoredValue.js';
 export type SQLResultRow = Record<string, DatabaseStoredValue>;
 export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
 

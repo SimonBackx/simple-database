@@ -1,8 +1,8 @@
-import { Decoder, EncodableObject, EncodeMedium, encodeObject, ObjectData, PlainObject } from '@simonbackx/simple-encoding';
+import { Decoder, EncodableObject, EncodeMedium, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
 
-import { ColumnType } from '../decorators/Column.js';
+import { type ColumnType } from './ColumnType.js';
+import { type DatabaseStoredValue } from './DatabaseStoredValue.js';
 
-export type DatabaseStoredValue = string | number | Date | null;
 export class Column {
     type: ColumnType;
     name: string;

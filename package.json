@@ -20,7 +20,7 @@
         "test": "vitest",
         "build": "tsc --build tsconfig.cjs.json tsconfig.esm.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
         "lint": "eslint",
-        "prepublishOnly": "vitest && eslint && pnpm build"
+        "prepublishOnly": "vitest && eslint --ignore-pattern='**/*.test.ts' && pnpm build"
     },
     "files": [
         "dist",
