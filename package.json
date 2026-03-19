@@ -36,7 +36,7 @@
         "test": "vitest",
         "build": "pnpm typecheck && tsdown",
         "lint": "eslint",
-        "prepublishOnly": "vitest && eslint --ignore-pattern='**/*.test.ts' && pnpm build"
+        "prepublishOnly": "vitest && eslint --ignore-pattern='**/*.test.ts' --ignore-pattern='tests/test-migrations/*' && pnpm build"
     },
     "files": [
         "dist",
