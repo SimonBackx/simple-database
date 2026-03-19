@@ -5,12 +5,18 @@
         "outDir": "dist"
     },
     "files": [], // intentionally empty
+    "include": [
+        "./index.ts",
+        "./src/**/*.ts",
+        "./src/**/*",
+    ],
+    "exclude": [
+        // Tests are excluded (only included in tsconfig.test.json)
+        "src/**/*.spec.ts",
+        "src/**/*.test.ts"
+    ],
     "references": [
         // Project dependencies are added by nx sync
-        {
-            // Normal build
-            "path": "./tsconfig.esm.json"
-        },
         {
             // Test files
             "path": "./tsconfig.test.json"

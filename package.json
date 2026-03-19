@@ -2,14 +2,19 @@
     "name": "@simonbackx/simple-database",
     "version": "1.36.0",
     "type": "module",
-    "main": "./dist/cjs/index.js",
-    "module": "./dist/esm/index.js",
-    "types": "./dist/esm/index.d.ts",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
     "exports": {
         ".": {
-            "import": "./dist/esm/index.js",
-            "require": "./dist/cjs/index.js",
-            "types": "./dist/esm/index.d.ts"
+            "import": {
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
         },
         "./migrations/*": "./migrations/*"
     },
@@ -17,8 +22,9 @@
         "#migrations/*": "./migrations/*"
     },
     "scripts": {
+        "typecheck": "tsc --noEmit",
         "test": "vitest",
-        "build": "tsc --build tsconfig.cjs.json tsconfig.esm.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
+        "build": "pnpm typecheck && tsdown",
         "lint": "eslint",
         "prepublishOnly": "vitest && eslint --ignore-pattern='**/*.test.ts' && pnpm build"
     },
@@ -38,15 +44,12 @@
     "devDependencies": {
         "@simonbackx/simple-encoding": "^2.26.0",
         "@simonbackx/simple-errors": "^1.4.0",
-        "@types/jest": "^27.0.1",
         "@types/mysql": "^2.15.20",
-        "@types/node": "^18.11.17",
+        "@types/node": "^22.19.15",
         "dotenv": "^10.0.0",
         "eslint-plugin-stamhoofd": "^2.119.0",
-        "jest": "^30.3.0",
-        "jest-extended": "^7.0.0",
         "oxlint": "^1.56.0",
-        "ts-jest": "^29.4.6",
+        "tsdown": "^0.21.4",
         "tslib": "^2.8.1",
         "typescript": "^5.9.3",
         "uuid": "^9.0.0",

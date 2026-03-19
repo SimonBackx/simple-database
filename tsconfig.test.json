@@ -18,7 +18,8 @@
     "include": [
         "./jest.d.ts",
         "./migrations.ts",
-        "./src/",
+        "./src/**/*.spec.ts",
+        "./src/**/*.test.ts",
         "./tests",
     ]
 }
