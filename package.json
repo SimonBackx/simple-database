@@ -16,7 +16,17 @@
                 "default": "./dist/index.cjs"
             }
         },
-        "./migrations/*": "./migrations/*"
+        "./migrations/*": "./migrations/*",
+        "./data/*": {
+            "import": {
+                "types": "./dist/src/classes/data/*.d.mts",
+                "default": "./dist/src/classes/data/*.mjs"
+            },
+            "require": {
+                "types": "./dist/src/classes/data/*.d.cts",
+                "default": "./dist/src/classes/data/*.cjs"
+            }
+        }
     },
     "imports": {
         "#migrations/*": "./migrations/*"
