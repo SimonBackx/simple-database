@@ -199,7 +199,7 @@ export class Migration {
             }
 
             const imported = await import(file);
-            migration = imported.default;
+            migration = imported.default?.default ?? imported.default;
         }
         return migration;
     }
