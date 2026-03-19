@@ -19,7 +19,8 @@
     "scripts": {
         "test": "vitest",
         "build": "tsc --build tsconfig.cjs.json tsconfig.esm.json && echo '{\"type\":\"commonjs\"}' > dist/cjs/package.json",
-        "lint": "eslint"
+        "lint": "eslint",
+        "prepublishOnly": "vitest && eslint && pnpm build"
     },
     "files": [
         "dist",
@@ -35,7 +36,7 @@
         "mysql2": "^3.14.1"
     },
     "devDependencies": {
-        "@simonbackx/simple-encoding": "^2.25.0",
+        "@simonbackx/simple-encoding": "^2.26.0",
         "@simonbackx/simple-errors": "^1.4.0",
         "@types/jest": "^27.0.1",
         "@types/mysql": "^2.15.20",
@@ -44,6 +45,7 @@
         "eslint-plugin-stamhoofd": "^2.119.0",
         "jest": "^30.3.0",
         "jest-extended": "^7.0.0",
+        "oxlint": "^1.56.0",
         "ts-jest": "^29.4.6",
         "tslib": "^2.8.1",
         "typescript": "^5.9.3",
