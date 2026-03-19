@@ -7,6 +7,7 @@
     "files": [], // intentionally empty
     "include": [
         "./index.ts",
+        "./tsdown.config.ts",
         "./src/**/*.ts",
         "./src/**/*",
     ],
