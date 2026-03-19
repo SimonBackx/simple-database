@@ -1,25 +1,8 @@
 import { promises as fs } from 'fs';
 
+import { logger, StyledText } from '@simonbackx/simple-logging';
 import { Migration as MigrationModel } from '../models/Migration.js';
 import { Database } from './Database.js';
-import { logger, StyledText } from '@simonbackx/simple-logging';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-function getDirname(): string {
-    // CJS environment
-    if (typeof __dirname !== 'undefined') {
-        return __dirname;
-    }
-
-    // ESM environment
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.url) {
-        // @ts-ignore
-        return dirname(fileURLToPath(import.meta.url));
-    }
-    throw new Error('Cannot determine __dirname');
-}
 
 export async function fileExists(file: string): Promise<boolean> {
     try {
@@ -32,7 +15,7 @@ export async function fileExists(file: string): Promise<boolean> {
 }
 
 async function getProjectRoot() {
-    let path = getDirname();
+    let path = __dirname;
     for (let index = 0; index < 5; index++) {
         if (await fileExists(path + '/migrations')) {
             return path;
@@ -66,7 +49,7 @@ export class Migration {
      * Given a folder, loop all the folders in that folder and run the migrations in the 'migrations' folder
      */
     static async runAll(folder: string): Promise<boolean> {
-        const dirname = getDirname();
+        const dirname = __dirname;
 
         // Get the current working directory by removing shared part of folder and dirname
         const shared = dirname.split('/').filter((part, index) => part === folder.split('/')[index]).join('/');
