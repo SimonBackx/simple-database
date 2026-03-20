@@ -5,21 +5,11 @@
         "outDir": "dist"
     },
     "files": [], // intentionally empty
-    "include": [
-        "./index.ts",
-        "./tsdown.config.ts",
-        "./src/**/*.ts",
-        "./src/**/*",
-    ],
-    "exclude": [
-        // Tests are excluded (only included in tsconfig.test.json)
-        "src/**/*.spec.ts",
-        "src/**/*.test.ts"
-    ],
     "references": [
-        // Project dependencies are added by nx sync
         {
-            // Test files
+            "path": "./tsconfig.build.json"
+        },
+        {
             "path": "./tsconfig.test.json"
         }
     ]

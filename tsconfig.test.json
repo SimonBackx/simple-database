@@ -14,7 +14,12 @@
             "vitest/globals"
         ]
     },
-    "references": [],
+    "references": [
+        // Give access to build
+        {
+            "path": "./tsconfig.build.json"
+        }
+    ],
     "include": [
         "./jest.d.ts",
         "./migrations.ts",
