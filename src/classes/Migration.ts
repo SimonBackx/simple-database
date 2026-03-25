@@ -112,12 +112,12 @@ export class Migration {
 
         if (migrations.length === 0) {
             logger.error(
-                    new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
-                    ' ',
-                    new StyledText('✗').addClass('migration', 'failed', 'tag'),
-                    ' ',
-                    new StyledText('No migrations found in '+ folder).addClass('migration', 'failed', 'text'),
-                );
+                new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+                ' ',
+                new StyledText('✗').addClass('migration', 'failed', 'tag'),
+                ' ',
+                new StyledText('No migrations found in ' + folder).addClass('migration', 'failed', 'text'),
+            );
             return false;
         }
 
