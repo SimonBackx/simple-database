@@ -110,6 +110,17 @@ export class Migration {
             }
         }
 
+        if (migrations.length === 0) {
+            logger.error(
+                    new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
+                    ' ',
+                    new StyledText('✗').addClass('migration', 'failed', 'tag'),
+                    ' ',
+                    new StyledText('No migrations found in '+ folder).addClass('migration', 'failed', 'text'),
+                );
+            return false;
+        }
+
         // Make sure we run the migrations in order
         migrations.sort((a, b) => {
             // It is expected to return a negative value if first argument is less than second argument, zero if they're equal and a positive value otherwise. If omitted, the elements are sorted in ascending, ASCII character order.
