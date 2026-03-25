@@ -95,7 +95,7 @@ export class Migration {
                 folderQueue = folderQueue.map(folder => folder + '/' + part);
             }
         }
-
+        let found = 0;
         for (const p of folderQueue) {
             if (await directoryExists(p)) {
                 const folderFiles = await fs.readdir(p);
@@ -103,6 +103,7 @@ export class Migration {
                 for (const file of folderFiles) {
                     const full = p + '/' + file;
                     const name = file;
+                    found += 1;
                     if (!(await MigrationModel.isExecuted(name))) {
                         migrations.push([name, full]);
                     }
@@ -110,7 +111,7 @@ export class Migration {
             }
         }
 
-        if (migrations.length === 0) {
+        if (found === 0) {
             logger.error(
                 new StyledText('[Migration]').addClass('migration', 'prefix').addTag('migration'),
                 ' ',
