@@ -1,7 +1,7 @@
 import fs from 'fs';
-import { AsyncLocalStorage } from "async_hooks";
+import { AsyncLocalStorage } from 'async_hooks';
 import mysql from 'mysql2/promise';
-import { type DatabaseStoredValue } from './DatabaseStoredValue.js';
+import type {DatabaseStoredValue} from './DatabaseStoredValue.js';
 export type SQLResultRow = Record<string, DatabaseStoredValue>;
 export type SQLResultNamespacedRow = Record<string, SQLResultRow>;
 

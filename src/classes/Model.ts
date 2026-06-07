@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Column } from './Column.js';
+import type { Column } from './Column.js';
 import { Database } from './Database.js';
-import { type DatabaseStoredValue } from './DatabaseStoredValue.js';
-import { type ManyToManyRelation } from './ManyToManyRelation.js';
-import { type ManyToOneRelation } from './ManyToOneRelation.js';
-import { type OneToManyRelation } from './OneToManyRelation.js';
+import type {DatabaseStoredValue} from './DatabaseStoredValue.js';
+import type {ManyToManyRelation} from './ManyToManyRelation.js';
+import type {ManyToOneRelation} from './ManyToOneRelation.js';
+import type {OneToManyRelation} from './OneToManyRelation.js';
 
 type SQLWhere = { sign: string; value: string | Date | number | null | (string | null)[] | (number | null)[]; mode?: string };
 type SQLWhereQuery = { [key: string]: string | Date | number | null | SQLWhere | SQLWhere[] };
