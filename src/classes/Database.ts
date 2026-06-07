@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { AsyncLocalStorage } from "async_hooks";
 import mysql from 'mysql2/promise';
 import { type DatabaseStoredValue } from './DatabaseStoredValue.js';
 export type SQLResultRow = Record<string, DatabaseStoredValue>;
@@ -23,6 +24,9 @@ export type PoolOptions = {
 export class DatabaseInstance {
     pool: mysql.Pool;
     debug = false;
+
+    /// Holds the connection of the transaction that is currently running for the active async context (if any).
+    private transactionStorage = new AsyncLocalStorage<mysql.PoolConnection>();
 
     constructor(options: PoolOptions = {}) {
         this.createPool(options);
@@ -101,6 +105,40 @@ export class DatabaseInstance {
         return await this.pool.getConnection();
     }
 
+    /// Returns the connection of the transaction that is running in the current async context, if any.
+    getTransactionConnection(): mysql.PoolConnection | undefined {
+        return this.transactionStorage.getStore();
+    }
+
+    /// Runs the provided method inside a database transaction. Every query that runs inside the method
+    /// (and that doesn't receive an explicit connection) automatically uses the transaction connection.
+    /// The transaction is committed when the method returns, or rolled back when it throws.
+    async beginTransaction<T>(transaction: () => Promise<T>): Promise<T> {
+        const connection = await this.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            let result: T;
+            try {
+                result = await this.transactionStorage.run(connection, transaction);
+            }
+            catch (error) {
+                try {
+                    await connection.rollback();
+                } catch (e) {
+                    console.error('Failed to rollback transaction', e);
+                }
+                throw error;
+            }
+
+            await connection.commit();
+            return result;
+        }
+        finally {
+            connection.release();
+        }
+    }
+
     escapeId(value: string): string {
         return this.pool.escapeId(value);
     }
@@ -130,7 +168,8 @@ export class DatabaseInstance {
     select(query: string, values?: any, options?: SelectOptions & { nestTables: true }): Promise<[SQLResultNamespacedRow[], mysql.FieldPacket[] | undefined]>;
     select(query: string, values?: any, options?: SelectOptions & { nestTables: false }): Promise<[SQLResultRow[], mysql.FieldPacket[] | undefined]>;
     async select(query: string, values?: any, options: SelectOptions = {}): Promise<[(SQLResultNamespacedRow | SQLResultRow)[], mysql.FieldPacket[] | undefined]> {
-        const connection: mysql.PoolConnection = options.connection ?? (await this.getConnection());
+        const explicitConnection = options.connection ?? this.getTransactionConnection();
+        const connection: mysql.PoolConnection = explicitConnection ?? (await this.getConnection());
         try {
             const q = await connection.query({ sql: query, nestTables: options.nestTables ?? true, values: values });
             return [
@@ -139,7 +178,7 @@ export class DatabaseInstance {
             ];
         }
         finally {
-            if (!options.connection) {
+            if (!explicitConnection) {
                 connection.release();
             }
         }
@@ -150,7 +189,8 @@ export class DatabaseInstance {
         values?: any,
         useConnection?: mysql.PoolConnection,
     ): Promise<[{ insertId: any; affectedRows: number }, mysql.FieldPacket[] | undefined]> {
-        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
+        const explicitConnection = useConnection ?? this.getTransactionConnection();
+        const connection: mysql.PoolConnection = explicitConnection ?? (await this.getConnection());
         try {
             const q = await connection.query({ sql: query, values: values });
             return [
@@ -159,7 +199,7 @@ export class DatabaseInstance {
             ];
         }
         finally {
-            if (!useConnection) {
+            if (!explicitConnection) {
                 connection.release();
             }
         }
@@ -168,7 +208,8 @@ export class DatabaseInstance {
     async update(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[
         { /** @deprecated */ changedRows: number; affectedRows: number }
         , mysql.FieldPacket[] | undefined]> {
-        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
+        const explicitConnection = useConnection ?? this.getTransactionConnection();
+        const connection: mysql.PoolConnection = explicitConnection ?? (await this.getConnection());
         try {
             const q = await connection.query({ sql: query, values: values });
             return [
@@ -177,14 +218,15 @@ export class DatabaseInstance {
             ];
         }
         finally {
-            if (!useConnection) {
+            if (!explicitConnection) {
                 connection.release();
             }
         }
     }
 
     async delete(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[{ affectedRows: number }, mysql.FieldPacket[] | undefined]> {
-        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
+        const explicitConnection = useConnection ?? this.getTransactionConnection();
+        const connection: mysql.PoolConnection = explicitConnection ?? (await this.getConnection());
         try {
             const q = await connection.query({ sql: query, values: values });
             return [
@@ -193,14 +235,15 @@ export class DatabaseInstance {
             ];
         }
         finally {
-            if (!useConnection) {
+            if (!explicitConnection) {
                 connection.release();
             }
         }
     }
 
     async statement(query: string, values?: any, useConnection?: mysql.PoolConnection): Promise<[any, any]> {
-        const connection: mysql.PoolConnection = useConnection ?? (await this.getConnection());
+        const explicitConnection = useConnection ?? this.getTransactionConnection();
+        const connection: mysql.PoolConnection = explicitConnection ?? (await this.getConnection());
         try {
             const q = await connection.query({ sql: query, values: values });
             return [
@@ -209,7 +252,7 @@ export class DatabaseInstance {
             ];
         }
         finally {
-            if (!useConnection) {
+            if (!explicitConnection) {
                 connection.release();
             }
         }
