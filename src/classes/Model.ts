@@ -635,7 +635,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         return column.from(c);
     }
 
-    async save(): Promise<boolean> {
+    async save(options?: {skipMarkSaved?: boolean, skipSendEvents?: boolean}): Promise<boolean> {
         if (!this.static.table) {
             throw new Error('Table name not set');
         }
@@ -728,36 +728,50 @@ export class Model /* static implements RowInitiable<Model> */ {
         // Emit event
         if (this.existsInDatabase) {
             // Keep reference to old properties before marking saved
-            const originalProperties = Object.fromEntries(
-                Array.from(this.savedProperties.entries()).map(([key, value]) => {
-                    if (typeof value === 'object' && value !== null && 'to' in value) {
-                        return [key, value.to()];
-                    }
-                    return [key, value];
-                }),
-            );
+            let originalProperties:  {
+                [k: string]: DatabaseStoredValue;
+            };
+            if (!options?.skipSendEvents) {
+                originalProperties = Object.fromEntries(
+                    Array.from(this.savedProperties.entries()).map(([key, value]) => {
+                        if (typeof value === 'object' && value !== null && 'to' in value) {
+                            return [key, value.to()];
+                        }
+                        return [key, value];
+                    }),
+                );
+            }
 
             // Mark saved before sending the event
-            this.markSaved(fields);
 
-            await this.static.modelEventBus.sendEvent({
-                type: 'updated',
-                model: this,
-                changedFields: fields,
-                originalFields: originalProperties,
-                getOldModel: () => {
-                    // Build a new model as if it was loaded from the database using the same original properties
-                    const v = this.static.fromRow(originalProperties);
-                    if (v === undefined) {
-                        throw new Error('Failed to create old model: primary key might be missing');
-                    }
-                    return v;
-                },
-            });
+            if (!options?.skipMarkSaved) {
+                this.markSaved(fields);
+            }
+
+            if (!options?.skipSendEvents) {
+                await this.static.modelEventBus.sendEvent({
+                    type: 'updated',
+                    model: this,
+                    changedFields: fields,
+                    originalFields: originalProperties!,
+                    getOldModel: () => {
+                        // Build a new model as if it was loaded from the database using the same original properties
+                        const v = this.static.fromRow(originalProperties);
+                        if (v === undefined) {
+                            throw new Error('Failed to create old model: primary key might be missing');
+                        }
+                        return v;
+                    },
+                });
+            }
         }
         else {
-            this.markSaved(fields);
-            await this.static.modelEventBus.sendEvent({ type: 'created', model: this });
+            if (!options?.skipMarkSaved) {
+                this.markSaved(fields);
+            }
+            if (!options?.skipSendEvents) {
+                await this.static.modelEventBus.sendEvent({ type: 'created', model: this });
+            }
         }
 
         return true;
