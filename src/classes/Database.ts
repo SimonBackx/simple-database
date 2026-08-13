@@ -28,8 +28,31 @@ export class DatabaseInstance {
     /// Holds the connection of the transaction that is currently running for the active async context (if any).
     private transactionStorage = new AsyncLocalStorage<mysql.PoolConnection>();
 
+    /// Holds the instance that replaces the default one for the active async context (if any).
+    private static instanceStorage = new AsyncLocalStorage<DatabaseInstance>();
+    private static defaultInstance: DatabaseInstance | undefined;
+
     constructor(options: PoolOptions = {}) {
         this.createPool(options);
+    }
+
+    /// The instance that queries run on when they don't receive one: the instance of the enclosing
+    /// use() call, or the default instance.
+    static get current(): DatabaseInstance {
+        return DatabaseInstance.instanceStorage.getStore() ?? DatabaseInstance.default;
+    }
+
+    /// The instance built from the environment variables. Only created once something uses it, so a
+    /// service that talks to another database doesn't need a default one configured.
+    static get default(): DatabaseInstance {
+        DatabaseInstance.defaultInstance ??= new DatabaseInstance();
+        return DatabaseInstance.defaultInstance;
+    }
+
+    /// Runs the provided method on the given instance: every query inside it that doesn't receive an
+    /// explicit connection runs on that instance instead of the default one.
+    static async use<T>(instance: DatabaseInstance, handler: () => Promise<T>): Promise<T> {
+        return await DatabaseInstance.instanceStorage.run(instance, handler);
     }
 
     createPool(options: PoolOptions = {}) {
@@ -259,4 +282,34 @@ export class DatabaseInstance {
     }
 }
 
-export const Database = new DatabaseInstance();
+export type DatabaseProxy = DatabaseInstance & {
+    /// The instance the queries of the current async context run on.
+    readonly instance: DatabaseInstance;
+};
+
+/**
+ * The database of the current async context, as set by DatabaseInstance.use() - the default instance
+ * outside of it.
+ *
+ * Reading a member off this object (Database.select, Database.pool, ...) resolves it on that instance
+ * every time. That only exists to keep the calls that were written against the old singleton working:
+ * write Database.instance.select(...) in new code, so the instance the query runs on is visible where
+ * the query is.
+ */
+export const Database: DatabaseProxy = new Proxy({} as DatabaseProxy, {
+    get(_target, property) {
+        const current = DatabaseInstance.current;
+        if (property === 'instance') {
+            return current;
+        }
+
+        const value = Reflect.get(current, property, current) as unknown;
+        return typeof value === 'function' ? value.bind(current) : value;
+    },
+    set(_target, property, value) {
+        return Reflect.set(DatabaseInstance.current, property, value);
+    },
+    has(_target, property) {
+        return property === 'instance' || Reflect.has(DatabaseInstance.current, property);
+    },
+});

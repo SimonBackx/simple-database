@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 
 import { logger, StyledText } from '@simonbackx/simple-logging';
 import { Migration as MigrationModel } from '../models/Migration.js';
-import { Database } from './Database.js';
+import { Database, DatabaseInstance } from './Database.js';
 
 export async function fileExists(file: string): Promise<boolean> {
     try {
@@ -47,8 +47,16 @@ export class Migration {
 
     /***
      * Given a folder, loop all the folders in that folder and run the migrations in the 'migrations' folder
+     *
+     * The migrations run on the database of the current async context, unless one is passed in
+     * options.database. That database keeps the migration history of the migrations that ran on it,
+     * in its own 'migrations' table.
      */
-    static async runAll(folder: string): Promise<boolean> {
+    static async runAll(folder: string, options?: { database?: DatabaseInstance }): Promise<boolean> {
+        if (options?.database) {
+            return await DatabaseInstance.use(options.database, () => this.runAll(folder));
+        }
+
         const dirname = __dirname;
 
         // Get the current working directory by removing shared part of folder and dirname
