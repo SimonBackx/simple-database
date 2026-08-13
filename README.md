@@ -82,6 +82,27 @@ if (TestModel.friends.isLoaded(model)) {
 model.logFriendCount(); // will throw a compile error
 ```
 
+## Multiple databases
+
+Queries that don't receive an explicit connection run on `Database.instance`: the instance built from
+the environment variables, unless the async context they run in was given another one.
+
+```ts
+const statistics = new DatabaseInstance({ host: "...", database: "statistics" });
+
+// Everything in here - models, queries, migrations - runs on the statistics database
+await DatabaseInstance.use(statistics, async () => {
+    await Database.instance.select("SELECT * from members");
+});
+```
+
+Migrations take the database they run on directly, and keep their history in its own `migrations`
+table:
+
+```ts
+await Migration.runAll(__dirname + "/migrations", { database: statistics });
+```
+
 ## Running tests
 
 To run tests, make sure you create a .env file first. Setup a test database and run the migrations first.
