@@ -17,7 +17,12 @@ export type PoolOptions = {
     multipleStatements?: boolean;
     charset?: string;
     useSSL?: boolean;
+    /** Path to the CA certificate file */
     ca?: string;
+    /** Path to the client private key file (for mutual TLS) */
+    key?: string;
+    /** Path to the client certificate file (for mutual TLS) */
+    cert?: string;
 };
 
 /// Database is a wrapper arround mysql, because we want to use promises + types
@@ -67,6 +72,8 @@ export class DatabaseInstance {
             charset: options.charset ?? process.env.DB_CHARSET ?? 'utf8mb4_0900_ai_ci',
             useSSL: options.useSSL ?? !!process.env.DB_USE_SSL,
             ca: options.ca ?? process.env.DB_CA,
+            key: options.key ?? process.env.DB_KEY,
+            cert: options.cert ?? process.env.DB_CERT,
         };
 
         if (settings.database === undefined) {
@@ -89,6 +96,8 @@ export class DatabaseInstance {
             ssl: settings.useSSL
                 ? {
                         ca: settings.ca ? fs.readFileSync(settings.ca) : undefined,
+                        key: settings.key ? fs.readFileSync(settings.key) : undefined,
+                        cert: settings.cert ? fs.readFileSync(settings.cert) : undefined,
                         rejectUnauthorized: settings.ca ? true : false,
                     }
                 : undefined,
