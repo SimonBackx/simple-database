@@ -5,15 +5,19 @@ import type { ManyToOneRelation } from '../classes/ManyToOneRelation.js';
 import type { Model } from '../classes/Model.js';
 import type {ColumnType} from '../classes/ColumnType.js';
 
+/** Maps a property to a database column; does not create or migrate the SQL schema. */
 export function column<Key extends keyof any, Value extends Model>(settings: {
     type: ColumnType;
     primary?: boolean;
     nullable?: boolean;
+    /** Decoder for JSON values, stored with their encoding version using the Database medium. */
     decoder?: Decoder<any>;
     /**
-     * Do not save the model if this is the only field that has changed
+     * For existing rows, changes consisting only of skipUpdate columns do not trigger SQL.
+     * These columns are still written alongside other changes, and on insert.
      */
     skipUpdate?: boolean;
+    /** Synchronous transform before each save attempt; receives the current property value. */
     beforeSave?: (value?: any) => any;
     beforeLoad?: (value?: any) => any;
     foreignKey?: ManyToOneRelation<Key, Value>;

@@ -22,6 +22,9 @@ npm install @simonbackx/simple-database
 
 ## Example
 
+See [Defining and saving models](docs/models.md) for column defaults, change
+detection and structures stored in JSON columns.
+
 ```ts
 type TestModelWithFriends = TestModel & { friends: TestModel[] };
 

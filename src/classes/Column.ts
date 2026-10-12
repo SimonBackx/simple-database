@@ -11,10 +11,11 @@ export class Column {
     primary = false;
 
     /**
-     * Do not save the model if this is the only field that has changed
+     * Skip an update when all changed fields have this flag; still included in other writes and inserts.
      */
     skipUpdate = false;
     decoder: Decoder<any> | undefined;
+    /** Called with the current value before change detection. Model.beforeSave does not await the result. */
     beforeSave?: (value?: any) => any | Promise<any>;
 
     // Allow handling of new fields etc
@@ -23,7 +24,8 @@ export class Column {
     private static jsonVersion = 0;
 
     /**
-     * Set the version used for JSON encoding in simple-encoding
+     * Set the version for new JSON writes (default 0). Reads use the stored version;
+     * unversioned legacy JSON falls back to version 0. Encoding uses the Database medium.
      */
     static setJSONVersion(version: number): void {
         Column.jsonVersion = version;
