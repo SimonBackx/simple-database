@@ -635,6 +635,12 @@ export class Model /* static implements RowInitiable<Model> */ {
         return column.from(c);
     }
 
+    /**
+     * Inserts a new row or updates changed columns after beforeSave transforms.
+     * Returns false if nothing needs writing, including updates with only skipUpdate changes.
+     * By default records the saved values and emits a created/updated event.
+     * Loaded relations must reference saved models and agree with their foreign keys.
+     */
     async save(options?: {skipMarkSaved?: boolean, skipSendEvents?: boolean}): Promise<boolean> {
         if (!this.static.table) {
             throw new Error('Table name not set');
@@ -777,6 +783,7 @@ export class Model /* static implements RowInitiable<Model> */ {
         return true;
     }
 
+    /** Deletes this saved row by primary key, clears saved state and emits a deleted event; throws for unsaved models. */
     async delete() {
         const id = this.getPrimaryKey();
 
